@@ -18,43 +18,43 @@ export default function BatchHeader({ batch }) {
     : 0;
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">{batch.batch_name}</h1>
+    <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-slate-900">{batch.batch_name}</h1>
           {batch.customer_name && (
-            <p className="text-slate-500 text-lg">לקוח: {batch.customer_name}</p>
+            <span className="text-slate-500">לקוח: {batch.customer_name}</span>
           )}
         </div>
-        <Badge className={`${status.color} border-0 flex items-center gap-2 px-4 py-2 text-base`}>
-          <StatusIcon className="w-4 h-4" />
+        <Badge className={`${status.color} border-0 flex items-center gap-1.5 px-3 py-1`}>
+          <StatusIcon className="w-3.5 h-3.5" />
           {status.label}
         </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 shadow-lg shadow-slate-200/50">
-          <p className="text-sm text-slate-500 mb-1">קבלות</p>
-          <p className="text-2xl font-bold text-slate-900">
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <p className="text-xs text-slate-500 mb-1">קבלות</p>
+          <p className="text-xl font-bold text-slate-900">
             {batch.processed_receipts || 0} / {batch.total_receipts || 0}
           </p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-lg shadow-slate-200/50">
-          <p className="text-sm text-slate-500 mb-1">התקדמות</p>
-          <p className="text-2xl font-bold text-slate-900">{progress}%</p>
+        <div>
+          <p className="text-xs text-slate-500 mb-1">התקדמות</p>
+          <p className="text-xl font-bold text-slate-900">{progress}%</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-lg shadow-slate-200/50 md:col-span-2">
-          <p className="text-sm text-slate-500 mb-1">סה״כ סכום</p>
-          <p className="text-2xl font-bold text-blue-700">
+        <div>
+          <p className="text-xs text-slate-500 mb-1">סה״כ סכום</p>
+          <p className="text-xl font-bold text-blue-700">
             ₪{(batch.total_amount || 0).toLocaleString('he-IL', {minimumFractionDigits: 2})}
           </p>
         </div>
       </div>
 
       {batch.notes && (
-        <div className="mt-4 bg-slate-50 rounded-xl p-4">
-          <p className="text-sm text-slate-500 mb-1">הערות</p>
-          <p className="text-slate-700">{batch.notes}</p>
+        <div className="mt-3 pt-3 border-t border-slate-200">
+          <p className="text-xs text-slate-500 mb-1">הערות</p>
+          <p className="text-sm text-slate-700">{batch.notes}</p>
         </div>
       )}
     </div>
