@@ -84,12 +84,10 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
     
     setFiles(prev => [...prev, ...newFiles]);
     
-    // Reset input so same files can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     
-    // Process files one by one
     for (const fileObj of newFiles) {
       await processFile(fileObj);
     }
@@ -102,11 +100,9 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
     setErrors(prev => ({ ...prev, [id]: null }));
 
     try {
-      // Upload
       setProgress(prev => ({ ...prev, [id]: 30 }));
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
-      // Extract data
       setProgress(prev => ({ ...prev, [id]: 60 }));
       
       const result = await base44.integrations.Core.InvokeLLM({
@@ -143,10 +139,7 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
         status: 'pending'
       };
       
-      // Store processed data
       setProcessedData(prev => ({ ...prev, [id]: extractedData }));
-      
-      // Open review modal
       onReceiptProcessed(extractedData);
 
     } catch (error) {
@@ -234,113 +227,124 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
           className="hidden"
         />
 
-        <div
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-slate-200 rounded-2xl p-8 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer text-center"
-        >
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-            <FileImage className="w-8 h-8 text-white" />
+        {files.length === 0 ? (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-slate-200 rounded-2xl p-8 hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer text-center"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+              <FileImage className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">לחץ להעלאת קבלות</h3>
+            <p className="text-sm text-slate-500">ניתן להעלות מספר קבלות בו זמנית (תמונות או PDF)</p>
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">לחץ להעלאת קבלות נוספות</h3>
-          <p className="text-sm text-slate-500">ניתן להעלות מספר קבלות בו זמנית (תמונות או PDF)</p>
-        </div>
+        ) : (
+          <>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              variant="outline"
+              className="w-full border-2 border-dashed hover:border-blue-400 hover:bg-blue-50 transition-all"
+            >
+              <Upload className="w-4 h-4 ml-2" />
+              העלה קבלות נוספות
+            </Button>
 
-        {files.length > 0 && (
-          <div className="space-y-3">
-            {files.map((fileObj) => {
-              const { file, id } = fileObj;
-              const isProcessing = processing[id];
-              const fileProgress = progress[id] || 0;
-              const error = errors[id];
-              const hasProcessedData = !!processedData[id];
+            <div className="space-y-3">
+              {files.map((fileObj) => {
+                const { file, id } = fileObj;
+                const isProcessing = processing[id];
+                const fileProgress = progress[id] || 0;
+                const error = errors[id];
+                const hasProcessedData = !!processedData[id];
 
-              return (
-                <div
-                  key={id}
-                  className={`rounded-xl border transition-all ${
-                    error ? 'border-red-500 bg-red-50' :
-                    isProcessing ? 'border-blue-500 bg-blue-50' : 
-                    hasProcessedData ? 'border-green-500 bg-green-50' :
-                    'border-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 p-4">
-                    <FileImage className={`w-8 h-8 flex-shrink-0 ${
-                      error ? 'text-red-500' :
-                      isProcessing ? 'text-blue-500' :
-                      hasProcessedData ? 'text-green-500' :
-                      'text-slate-500'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 truncate">{file.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      
-                      {isProcessing && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm text-slate-600">מעבד עם AI...</span>
-                            <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                return (
+                  <div
+                    key={id}
+                    className={`rounded-xl border transition-all ${
+                      error ? 'border-red-500 bg-red-50' :
+                      isProcessing ? 'border-blue-500 bg-blue-50' : 
+                      hasProcessedData ? 'border-green-500 bg-green-50' :
+                      'border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 p-4">
+                      <FileImage className={`w-8 h-8 flex-shrink-0 ${
+                        error ? 'text-red-500' :
+                        isProcessing ? 'text-blue-500' :
+                        hasProcessedData ? 'text-green-500' :
+                        'text-slate-500'
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{file.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        
+                        {isProcessing && (
+                          <div className="mt-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm text-slate-600">מעבד עם AI...</span>
+                              <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                            </div>
+                            <Progress value={fileProgress} className="h-1.5" />
                           </div>
-                          <Progress value={fileProgress} className="h-1.5" />
-                        </div>
-                      )}
+                        )}
+                        
+                        {hasProcessedData && !error && (
+                          <div className="flex items-center gap-1 text-sm text-green-700 mt-1 font-medium">
+                            <CheckCircle className="w-4 h-4" />
+                            עובד - לחץ לעיון חוזר
+                          </div>
+                        )}
+                      </div>
                       
-                      {hasProcessedData && !error && (
-                        <div className="flex items-center gap-1 text-sm text-green-700 mt-1 font-medium">
-                          <CheckCircle className="w-4 h-4" />
-                          עובד - לחץ לעיון חוזר
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {hasProcessedData && !isProcessing && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => reviewAgain(fileObj)}
+                            className="text-xs"
+                          >
+                            עיון חוזר
+                          </Button>
+                        )}
+                        {error && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => retryFile(fileObj)}
+                            className="text-xs"
+                          >
+                            נסה שוב
+                          </Button>
+                        )}
+                        {!isProcessing && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeFile(fileObj)}
+                            className="h-8 w-8"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      {hasProcessedData && !isProcessing && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => reviewAgain(fileObj)}
-                          className="text-xs"
-                        >
-                          עיון חוזר
-                        </Button>
-                      )}
-                      {error && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => retryFile(fileObj)}
-                          className="text-xs"
-                        >
-                          נסה שוב
-                        </Button>
-                      )}
-                      {!isProcessing && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeFile(fileObj)}
-                          className="h-8 w-8"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                    {error && (
+                      <div className="px-4 pb-4">
+                        <Alert variant="destructive" className="bg-red-100 border-red-300">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription className="text-sm">{error}</AlertDescription>
+                        </Alert>
+                      </div>
+                    )}
                   </div>
-                  
-                  {error && (
-                    <div className="px-4 pb-4">
-                      <Alert variant="destructive" className="bg-red-100 border-red-300">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="text-sm">{error}</AlertDescription>
-                      </Alert>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

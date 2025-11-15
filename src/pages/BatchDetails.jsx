@@ -62,6 +62,14 @@ export default function BatchDetailsPage() {
     },
   });
 
+  const deleteReceiptMutation = useMutation({
+    mutationFn: (receiptId) => base44.entities.Receipt.delete(receiptId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+      updateBatchStats();
+    },
+  });
+
   const updateBatchStats = async () => {
     const updatedReceipts = await base44.entities.Receipt.filter({ batch_id: batchId });
     const totalAmount = updatedReceipts.reduce((sum, r) => sum + (r.total_amount || 0), 0);
@@ -115,6 +123,10 @@ export default function BatchDetailsPage() {
     }
   };
 
+  const handleDeleteReceipt = (receiptId) => {
+    deleteReceiptMutation.mutate(receiptId);
+  };
+
   if (!batchId) {
     return (
       <div className="p-8 text-center">
@@ -161,7 +173,6 @@ export default function BatchDetailsPage() {
           )}
         </div>
 
-        {/* Always show upload section for open and processing batches */}
         {!isCompleted && (
           <div className="mb-8">
             <UploadSection 
@@ -171,7 +182,6 @@ export default function BatchDetailsPage() {
           </div>
         )}
 
-        {/* Receipts sections */}
         {receipts.length > 0 ? (
           <div className="grid lg:grid-cols-2 gap-6">
             {pendingReceipts.length > 0 && (
@@ -185,6 +195,7 @@ export default function BatchDetailsPage() {
                 <ReceiptsGrid 
                   receipts={pendingReceipts}
                   onSelectReceipt={setSelectedReceipt}
+                  onDeleteReceipt={handleDeleteReceipt}
                   showStatus={false}
                 />
               </div>
@@ -201,6 +212,7 @@ export default function BatchDetailsPage() {
                 <ReceiptsGrid 
                   receipts={approvedReceipts}
                   onSelectReceipt={setSelectedReceipt}
+                  onDeleteReceipt={handleDeleteReceipt}
                   showStatus={true}
                 />
               </div>
