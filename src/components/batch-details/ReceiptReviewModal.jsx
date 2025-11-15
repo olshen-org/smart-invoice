@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2, CheckCircle, XCircle, Calculator } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { base44 } from "@/api/base44Client";
 
 const CATEGORIES = [
   { value: "office_supplies", label: "ציוד משרדי" },
@@ -38,9 +39,18 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
   const [editedData, setEditedData] = useState(receipt);
+  const [pdfUrl, setPdfUrl] = useState(null);
 
   useEffect(() => {
     setEditedData(receipt);
+    
+    const isPDF = receipt?.receipt_image_url?.toLowerCase().endsWith('.pdf');
+    if (isPDF && receipt.receipt_image_url) {
+      const proxyUrl = base44.functions.getFunctionUrl('viewPdf') + '?url=' + encodeURIComponent(receipt.receipt_image_url);
+      setPdfUrl(proxyUrl);
+    } else {
+      setPdfUrl(null);
+    }
   }, [receipt]);
 
   const handleInputChange = (field, value) => {
@@ -102,7 +112,7 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                 {isReceiptPDF ? (
                   <iframe
-                    src={`${editedData.receipt_image_url}#view=FitH`}
+                    src={pdfUrl}
                     className="w-full aspect-[3/4]"
                     title="Receipt PDF"
                   />
