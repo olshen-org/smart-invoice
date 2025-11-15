@@ -145,6 +145,7 @@ export default function BatchDetailsPage() {
 
   const pendingReceipts = receipts.filter(r => r.status === 'pending');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
+  const rejectedReceipts = receipts.filter(r => r.status === 'rejected');
   const isCompleted = batch?.status === 'completed';
 
   return (
@@ -206,6 +207,23 @@ export default function BatchDetailsPage() {
                 </div>
                 <ReceiptsGrid 
                   receipts={approvedReceipts}
+                  onSelectReceipt={setSelectedReceipt}
+                  onDeleteReceipt={handleDeleteReceipt}
+                  showStatus={true}
+                />
+              </div>
+            )}
+
+            {rejectedReceipts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-bold text-slate-900">נדחו</h2>
+                  <Badge variant="secondary" className="bg-red-100 text-red-800">
+                    {rejectedReceipts.length}
+                  </Badge>
+                </div>
+                <ReceiptsGrid 
+                  receipts={rejectedReceipts}
                   onSelectReceipt={setSelectedReceipt}
                   onDeleteReceipt={handleDeleteReceipt}
                   showStatus={true}
