@@ -84,6 +84,11 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
     
     setFiles(prev => [...prev, ...newFiles]);
     
+    // Reset input so same files can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    
     // Process files one by one
     for (const fileObj of newFiles) {
       await processFile(fileObj);
@@ -191,15 +196,35 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
     }
   };
 
+  const clearAll = () => {
+    setFiles([]);
+    setProcessing({});
+    setProgress({});
+    setErrors({});
+    setProcessedData({});
+  };
+
   return (
     <Card className="border-none shadow-2xl shadow-slate-200/50">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          העלאת קבלות
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            העלאת קבלות
+          </CardTitle>
+          {files.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+              className="text-slate-500 hover:text-slate-700"
+            >
+              נקה הכל
+            </Button>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <input
           ref={fileInputRef}
           type="file"
@@ -216,12 +241,12 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
             <FileImage className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900 mb-2">גרור קבצים או לחץ לבחירה</h3>
+          <h3 className="text-lg font-bold text-slate-900 mb-2">לחץ להעלאת קבלות נוספות</h3>
           <p className="text-sm text-slate-500">ניתן להעלות מספר קבלות בו זמנית (תמונות או PDF)</p>
         </div>
 
         {files.length > 0 && (
-          <div className="mt-6 space-y-3">
+          <div className="space-y-3">
             {files.map((fileObj) => {
               const { file, id } = fileObj;
               const isProcessing = processing[id];
