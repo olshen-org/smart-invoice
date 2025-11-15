@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LayoutDashboard, Upload, Receipt, FileText } from "lucide-react";
+import { LayoutDashboard, Layers, Receipt } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -24,9 +24,9 @@ const navigationItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "העלאת קבלה",
-    url: createPageUrl("Upload"),
-    icon: Upload,
+    title: "אצוות",
+    url: createPageUrl("Batches"),
+    icon: Layers,
   },
 ];
 

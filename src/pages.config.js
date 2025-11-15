@@ -1,11 +1,15 @@
 import Dashboard from './pages/Dashboard';
 import Upload from './pages/Upload';
+import Batches from './pages/Batches';
+import BatchDetails from './pages/BatchDetails';
 import Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Dashboard": Dashboard,
     "Upload": Upload,
+    "Batches": Batches,
+    "BatchDetails": BatchDetails,
 }
 
 export const pagesConfig = {
