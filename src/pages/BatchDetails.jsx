@@ -11,6 +11,7 @@ import BatchHeader from "../components/batch-details/BatchHeader";
 import UploadSection from "../components/batch-details/UploadSection";
 import ReceiptsGrid from "../components/batch-details/ReceiptsGrid";
 import ReceiptReviewModal from "../components/batch-details/ReceiptReviewModal";
+import BulkActionsBar from "../components/batch-details/BulkActionsBar";
 
 export default function BatchDetailsPage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function BatchDetailsPage() {
   const batchId = urlParams.get('id');
 
   const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const { data: batch, isLoading: batchLoading } = useQuery({
     queryKey: ['batch', batchId],
@@ -127,6 +129,58 @@ export default function BatchDetailsPage() {
     deleteReceiptMutation.mutate(receiptId);
   };
 
+  const handleToggleSelect = (receiptId) => {
+    setSelectedIds(prev => 
+      prev.includes(receiptId) 
+        ? prev.filter(id => id !== receiptId)
+        : [...prev, receiptId]
+    );
+  };
+
+  const handleToggleSelectAll = (receiptsToSelect) => {
+    const allIds = receiptsToSelect.map(r => r.id);
+    const allSelected = allIds.every(id => selectedIds.includes(id));
+    
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !allIds.includes(id)));
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...allIds])]);
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (!confirm(`האם לאשר ${selectedIds.length} קבלות?`)) return;
+    
+    for (const id of selectedIds) {
+      await base44.entities.Receipt.update(id, { status: 'approved' });
+    }
+    setSelectedIds([]);
+    queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+    updateBatchStats();
+  };
+
+  const handleBulkReject = async () => {
+    if (!confirm(`האם לדחות ${selectedIds.length} קבלות?`)) return;
+    
+    for (const id of selectedIds) {
+      await base44.entities.Receipt.update(id, { status: 'rejected' });
+    }
+    setSelectedIds([]);
+    queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+    updateBatchStats();
+  };
+
+  const handleBulkDelete = async () => {
+    if (!confirm(`האם למחוק ${selectedIds.length} קבלות? פעולה זו לא ניתנת לביטול.`)) return;
+    
+    for (const id of selectedIds) {
+      await base44.entities.Receipt.delete(id);
+    }
+    setSelectedIds([]);
+    queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+    updateBatchStats();
+  };
+
   if (!batchId) {
     return (
       <div className="p-8 text-center">
@@ -193,6 +247,9 @@ export default function BatchDetailsPage() {
                   onSelectReceipt={setSelectedReceipt}
                   onDeleteReceipt={handleDeleteReceipt}
                   showStatus={false}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onToggleSelectAll={() => handleToggleSelectAll(pendingReceipts)}
                 />
               </div>
             )}
@@ -210,6 +267,9 @@ export default function BatchDetailsPage() {
                   onSelectReceipt={setSelectedReceipt}
                   onDeleteReceipt={handleDeleteReceipt}
                   showStatus={true}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onToggleSelectAll={() => handleToggleSelectAll(approvedReceipts)}
                 />
               </div>
             )}
@@ -227,6 +287,9 @@ export default function BatchDetailsPage() {
                   onSelectReceipt={setSelectedReceipt}
                   onDeleteReceipt={handleDeleteReceipt}
                   showStatus={true}
+                  selectedIds={selectedIds}
+                  onToggleSelect={handleToggleSelect}
+                  onToggleSelectAll={() => handleToggleSelectAll(rejectedReceipts)}
                 />
               </div>
             )}
@@ -238,6 +301,14 @@ export default function BatchDetailsPage() {
             <p className="text-sm text-slate-500">התחל להעלות קבלות לאצווה זו</p>
           </div>
         )}
+
+        <BulkActionsBar
+          selectedCount={selectedIds.length}
+          onApproveAll={handleBulkApprove}
+          onRejectAll={handleBulkReject}
+          onDeleteAll={handleBulkDelete}
+          onClear={() => setSelectedIds([])}
+        />
 
         {selectedReceipt && (
           <ReceiptReviewModal

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, Clock, XCircle, FileText, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -12,14 +13,33 @@ const statusConfig = {
   rejected: { label: "נדחה", color: "bg-red-100 text-red-800", icon: XCircle }
 };
 
-export default function ReceiptsGrid({ receipts, onSelectReceipt, onDeleteReceipt, showStatus }) {
+export default function ReceiptsGrid({ 
+  receipts, 
+  onSelectReceipt, 
+  onDeleteReceipt, 
+  showStatus,
+  selectedIds = [],
+  onToggleSelect,
+  onToggleSelectAll
+}) {
   const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+  const allSelected = receipts.length > 0 && receipts.every(r => selectedIds.includes(r.id));
+  const someSelected = selectedIds.length > 0 && !allSelected;
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-50">
+            {onToggleSelect && (
+              <TableHead className="w-12">
+                <Checkbox
+                  checked={allSelected}
+                  onCheckedChange={onToggleSelectAll}
+                  className={someSelected ? "data-[state=checked]:bg-blue-600" : ""}
+                />
+              </TableHead>
+            )}
             <TableHead className="text-right">תמונה</TableHead>
             <TableHead className="text-right">ספק</TableHead>
             <TableHead className="text-right">תאריך</TableHead>
@@ -33,13 +53,22 @@ export default function ReceiptsGrid({ receipts, onSelectReceipt, onDeleteReceip
             const status = statusConfig[receipt.status] || statusConfig.pending;
             const StatusIcon = status.icon;
             const isReceiptPDF = isPDF(receipt.receipt_image_url);
+            const isSelected = selectedIds.includes(receipt.id);
 
             return (
               <TableRow 
                 key={receipt.id} 
-                className="hover:bg-slate-50 cursor-pointer"
+                className={`hover:bg-slate-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
                 onClick={() => onSelectReceipt(receipt)}
               >
+                {onToggleSelect && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => onToggleSelect(receipt.id)}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="w-16">
                   {receipt.receipt_image_url && (
                     <div className="w-12 h-12 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
