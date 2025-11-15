@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, XCircle } from "lucide-react";
+import { CheckCircle, Clock, XCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 
@@ -12,11 +12,14 @@ const statusConfig = {
 };
 
 export default function ReceiptsGrid({ receipts, onSelectReceipt, showStatus }) {
+  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+
   return (
     <div className="grid grid-cols-1 gap-4">
       {receipts.map((receipt) => {
         const status = statusConfig[receipt.status] || statusConfig.pending;
         const StatusIcon = status.icon;
+        const isReceiptPDF = isPDF(receipt.receipt_image_url);
 
         return (
           <Card
@@ -27,12 +30,16 @@ export default function ReceiptsGrid({ receipts, onSelectReceipt, showStatus }) 
             <CardContent className="p-4">
               <div className="flex gap-4">
                 {receipt.receipt_image_url && (
-                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0">
-                    <img
-                      src={receipt.receipt_image_url}
-                      alt="Receipt"
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-slate-200 flex-shrink-0 bg-slate-50 flex items-center justify-center">
+                    {isReceiptPDF ? (
+                      <FileText className="w-10 h-10 text-red-500" />
+                    ) : (
+                      <img
+                        src={receipt.receipt_image_url}
+                        alt="Receipt"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

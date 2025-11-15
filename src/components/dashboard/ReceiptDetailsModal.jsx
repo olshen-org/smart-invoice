@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -10,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FileText } from "lucide-react"; // Added import
 
 const categoryLabels = {
   office_supplies: "ציוד משרדי",
@@ -33,6 +35,9 @@ const paymentMethodLabels = {
 };
 
 export default function ReceiptDetailsModal({ receipt, onClose }) {
+  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+  const isReceiptPDF = isPDF(receipt?.receipt_image_url);
+
   return (
     <Dialog open={!!receipt} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" dir="rtl">
@@ -43,11 +48,26 @@ export default function ReceiptDetailsModal({ receipt, onClose }) {
         <div className="space-y-6">
           {receipt.receipt_image_url && (
             <div className="rounded-xl overflow-hidden border border-slate-200">
-              <img 
-                src={receipt.receipt_image_url} 
-                alt="Receipt" 
-                className="w-full h-auto"
-              />
+              {isReceiptPDF ? (
+                <div className="w-full aspect-[3/4] flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-100">
+                  <FileText className="w-24 h-24 text-red-500 mb-4" />
+                  <p className="text-slate-600 mb-4 text-center">מסמך PDF</p>
+                  <a
+                    href={receipt.receipt_image_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    פתח PDF
+                  </a>
+                </div>
+              ) : (
+                <img 
+                  src={receipt.receipt_image_url} 
+                  alt="Receipt" 
+                  className="w-full h-auto"
+                />
+              )}
             </div>
           )}
 
