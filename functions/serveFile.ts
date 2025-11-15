@@ -23,7 +23,6 @@ Deno.serve(async (req) => {
     }
     
     const arrayBuffer = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     
     // Detect content type from URL
     const ext = fileUrl.toLowerCase().split('.').pop().split('?')[0];
@@ -38,9 +37,13 @@ Deno.serve(async (req) => {
     
     const contentType = contentTypes[ext] || 'application/octet-stream';
     
-    return Response.json({
-      data: base64,
-      contentType: contentType
+    return new Response(arrayBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': 'inline',
+        'Cache-Control': 'public, max-age=3600'
+      }
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -49,16 +49,7 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
         try {
           const response = await base44.functions.invoke('serveFile', { fileUrl: receipt.receipt_image_url });
           
-          const { data: base64Data, contentType } = response.data;
-          
-          // Decode base64 to binary
-          const binaryString = atob(base64Data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          
-          const blob = new Blob([bytes], { type: contentType });
+          const blob = new Blob([response.data], { type: 'application/pdf' });
           const url = URL.createObjectURL(blob);
           setPdfBlobUrl(url);
         } catch (error) {
