@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, XCircle, FileText, Trash2, Eye } from "lucide-react";
+import { CheckCircle, Clock, XCircle, FileText, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -25,7 +25,7 @@ export default function ReceiptsGrid({ receipts, onSelectReceipt, onDeleteReceip
             <TableHead className="text-right">תאריך</TableHead>
             <TableHead className="text-right">סכום</TableHead>
             {showStatus && <TableHead className="text-right">סטטוס</TableHead>}
-            <TableHead className="text-left w-24">פעולות</TableHead>
+            <TableHead className="text-left w-16">פעולות</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -35,7 +35,11 @@ export default function ReceiptsGrid({ receipts, onSelectReceipt, onDeleteReceip
             const isReceiptPDF = isPDF(receipt.receipt_image_url);
 
             return (
-              <TableRow key={receipt.id} className="hover:bg-slate-50">
+              <TableRow 
+                key={receipt.id} 
+                className="hover:bg-slate-50 cursor-pointer"
+                onClick={() => onSelectReceipt(receipt)}
+              >
                 <TableCell className="w-16">
                   {receipt.receipt_image_url && (
                     <div className="w-12 h-12 rounded border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
@@ -67,31 +71,21 @@ export default function ReceiptsGrid({ receipts, onSelectReceipt, onDeleteReceip
                   </TableCell>
                 )}
                 <TableCell>
-                  <div className="flex items-center gap-1">
+                  {onDeleteReceipt && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onSelectReceipt(receipt)}
-                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('האם למחוק קבלה זו?')) {
+                          onDeleteReceipt(receipt.id);
+                        }
+                      }}
+                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
                     >
-                      <Eye className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
-                    {onDeleteReceipt && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm('האם למחוק קבלה זו?')) {
-                            onDeleteReceipt(receipt.id);
-                          }
-                        }}
-                        className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </TableCell>
               </TableRow>
             );
