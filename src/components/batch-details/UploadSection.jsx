@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
@@ -89,39 +88,40 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
   };
 
   return (
-    <Card className="border-none shadow-2xl shadow-slate-200/50">
-      <CardContent className="p-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,.pdf"
-          onChange={handleFileSelect}
-          disabled={isProcessing}
-          className="hidden"
-        />
+    <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf"
+        onChange={handleFileSelect}
+        disabled={isProcessing}
+        className="hidden"
+      />
 
+      <div className="flex items-center gap-3">
         <Button
           onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
-          className="w-full h-16 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-lg"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           {isProcessing ? (
             <>
-              <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-              מעבד קבלה...
+              <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+              מעבד...
             </>
           ) : (
             <>
-              <Upload className="w-5 h-5 ml-2" />
+              <Upload className="w-4 h-4 ml-2" />
               העלה קבלה
             </>
           )}
         </Button>
-
         {isProcessing && (
-          <Progress value={progress} className="mt-4 h-2" />
+          <div className="flex-1">
+            <Progress value={progress} className="h-2" />
+          </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

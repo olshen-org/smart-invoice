@@ -145,46 +145,46 @@ export default function BatchDetailsPage() {
 
   const pendingReceipts = receipts.filter(r => r.status === 'pending');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
+  const isCompleted = batch?.status === 'completed';
 
   return (
-    <div className="p-4 md:p-8 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
+    <div className="p-6 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
             onClick={() => navigate(createPageUrl("Batches"))}
-            className="rounded-xl"
           >
             <ArrowRight className="w-5 h-5" />
           </Button>
           <div className="flex-1">
             <BatchHeader batch={batch} />
           </div>
-          {batch?.status !== 'completed' && receipts.length > 0 && (
+          {!isCompleted && receipts.length > 0 && (
             <Button
               onClick={handleFinalizeBatch}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
+              className="bg-green-600 hover:bg-green-700"
             >
-              <CheckCircle className="w-5 h-5 ml-2" />
+              <CheckCircle className="w-4 h-4 ml-2" />
               סגור אצווה
             </Button>
           )}
         </div>
 
-        <div className="mb-8">
+        {!isCompleted && (
           <UploadSection 
             batchId={batchId}
             onReceiptProcessed={setSelectedReceipt}
           />
-        </div>
+        )}
 
         {receipts.length > 0 ? (
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
             {pendingReceipts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-xl font-bold text-slate-900">ממתין לאישור</h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-bold text-slate-900">ממתין לאישור</h2>
                   <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                     {pendingReceipts.length}
                   </Badge>
@@ -200,8 +200,8 @@ export default function BatchDetailsPage() {
 
             {approvedReceipts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <h2 className="text-xl font-bold text-slate-900">אושרו</h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-lg font-bold text-slate-900">אושרו</h2>
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
                     {approvedReceipts.length}
                   </Badge>
@@ -216,12 +216,10 @@ export default function BatchDetailsPage() {
             )}
           </div>
         ) : !receiptsLoading && (
-          <div className="text-center py-20">
-            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Upload className="w-12 h-12 text-slate-400" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">אין קבלות באצווה</h3>
-            <p className="text-slate-500">התחל להעלות קבלות לאצווה זו</p>
+          <div className="text-center py-16 bg-white rounded-lg border border-slate-200">
+            <Upload className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 mb-1">אין קבלות באצווה</h3>
+            <p className="text-sm text-slate-500">התחל להעלות קבלות לאצווה זו</p>
           </div>
         )}
 
