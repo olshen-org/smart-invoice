@@ -172,12 +172,10 @@ export default function BatchDetailsPage() {
           )}
         </div>
 
-        {!isCompleted && (
-          <UploadSection 
-            batchId={batchId}
-            onReceiptProcessed={setSelectedReceipt}
-          />
-        )}
+        <UploadSection 
+          batchId={batchId}
+          onReceiptProcessed={setSelectedReceipt}
+        />
 
         {receipts.length > 0 ? (
           <div className="space-y-6">
