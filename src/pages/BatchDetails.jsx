@@ -145,7 +145,6 @@ export default function BatchDetailsPage() {
 
   const pendingReceipts = receipts.filter(r => r.status === 'pending');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
-  const isCompleted = batch?.status === 'completed';
 
   return (
     <div className="p-4 md:p-8 min-h-screen">
@@ -162,7 +161,7 @@ export default function BatchDetailsPage() {
           <div className="flex-1">
             <BatchHeader batch={batch} />
           </div>
-          {!isCompleted && receipts.length > 0 && (
+          {batch?.status !== 'completed' && receipts.length > 0 && (
             <Button
               onClick={handleFinalizeBatch}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
@@ -173,14 +172,12 @@ export default function BatchDetailsPage() {
           )}
         </div>
 
-        {!isCompleted && (
-          <div className="mb-8">
-            <UploadSection 
-              batchId={batchId}
-              onReceiptProcessed={setSelectedReceipt}
-            />
-          </div>
-        )}
+        <div className="mb-8">
+          <UploadSection 
+            batchId={batchId}
+            onReceiptProcessed={setSelectedReceipt}
+          />
+        </div>
 
         {receipts.length > 0 ? (
           <div className="grid lg:grid-cols-2 gap-6">
