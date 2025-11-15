@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Dialog,
@@ -12,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CheckCircle, XCircle, Calculator, FileText } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Calculator } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -102,19 +101,11 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                 {isReceiptPDF ? (
-                  <div className="w-full aspect-[3/4] flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-100">
-                    <FileText className="w-24 h-24 text-red-500 mb-4" />
-                    <p className="text-slate-600 mb-4 text-center">מסמך PDF</p>
-                    <a
-                      href={editedData.receipt_image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      פתח PDF
-                    </a>
-                  </div>
+                  <iframe
+                    src={`${editedData.receipt_image_url}#view=FitH`}
+                    className="w-full aspect-[3/4]"
+                    title="Receipt PDF"
+                  />
                 ) : (
                   <img 
                     src={editedData.receipt_image_url} 
