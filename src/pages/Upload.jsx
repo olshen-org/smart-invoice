@@ -10,6 +10,67 @@ import { createPageUrl } from "@/utils";
 import UploadZone from "../components/upload/UploadZone";
 import ReceiptPreview from "../components/upload/ReceiptPreview";
 
+const RECEIPT_SCHEMA = {
+  type: "object",
+  properties: {
+    vendor_name: {
+      type: "string",
+      description: "שם העסק או הספק"
+    },
+    receipt_number: {
+      type: "string",
+      description: "מספר קבלה או חשבונית"
+    },
+    date: {
+      type: "string",
+      format: "date",
+      description: "תאריך הקבלה בפורמט YYYY-MM-DD"
+    },
+    total_amount: {
+      type: "number",
+      description: "סכום כולל"
+    },
+    vat_amount: {
+      type: "number",
+      description: "סכום מעם"
+    },
+    currency: {
+      type: "string",
+      description: "מטבע"
+    },
+    payment_method: {
+      type: "string",
+      description: "אמצעי תשלום"
+    },
+    category: {
+      type: "string",
+      description: "קטגוריה"
+    },
+    line_items: {
+      type: "array",
+      description: "פריטים בקבלה",
+      items: {
+        type: "object",
+        properties: {
+          description: {
+            type: "string"
+          },
+          quantity: {
+            type: "number"
+          },
+          unit_price: {
+            type: "number"
+          },
+          total: {
+            type: "number"
+          }
+        }
+      }
+    }
+  },
+  required: ["vendor_name", "date", "total_amount"]
+};
+
 export default function UploadPage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
@@ -33,27 +94,32 @@ export default function UploadPage() {
       setFileUrl(file_url);
       setUploadProgress(50);
 
-      // Extract data using Gemini via InvokeLLM
+      // Extract data using InvokeLLM
       setUploadProgress(70);
-      const schema = await base44.entities.Receipt.schema();
       
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: `אנא נתח את הקבלה או החשבונית הזו ותחלץ את כל המידע הרלוונטי.
         
 חשוב במיוחד:
-- זהה את שם העסק/הספק
-- מספר קבלה/חשבונית
-- תאריך (בפורמט YYYY-MM-DD)
-- סכום כולל
-- סכום מע"ם (אם קיים)
-- מטבע (ברירת מחדל ILS)
-- אמצעי תשלום
-- כל הפריטים/שורות בקבלה עם כמות, מחיר יחידה וסכום
-- חשב את הסכומים הכוללים בדיוק
+- זהה את שם העסק/הספק (vendor_name)
+- מספר קבלה/חשבונית (receipt_number)
+- תאריך (date) - בפורמט YYYY-MM-DD בדיוק
+- סכום כולל (total_amount) - מספר
+- סכום מע"ם (vat_amount) - מספר
+- מטבע (currency) - ברירת מחדל ILS
+- אמצעי תשלום (payment_method)
+- קטגוריה (category)
+- כל הפריטים/שורות בקבלה (line_items) עם:
+  * תיאור (description)
+  * כמות (quantity) - מספר
+  * מחיר יחידה (unit_price) - מספר
+  * סה"כ (total) - מספר
+  
+חשב את הסכומים הכוללים בדיוק. אם זה PDF, קרא את כל הטקסט בקובץ.
 
-אם יש פריטים מרובים, ודא שסכום total_amount שווה לסכום כל הפריטים.`,
+החזר רק JSON תקין ללא טקסט נוסף.`,
         file_urls: [file_url],
-        response_json_schema: schema
+        response_json_schema: RECEIPT_SCHEMA
       });
 
       setUploadProgress(100);
