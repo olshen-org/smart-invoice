@@ -91,13 +91,11 @@ export default function BatchDetailsPage() {
 
   const handleApproveReceipt = (receiptData) => {
     if (selectedReceipt?.id) {
-      // Updating existing receipt
       updateReceiptMutation.mutate({
         id: selectedReceipt.id,
         data: { ...receiptData, status: 'approved' }
       });
     } else {
-      // Creating new receipt
       createReceiptMutation.mutate({
         ...receiptData,
         batch_id: batchId,
@@ -113,7 +111,6 @@ export default function BatchDetailsPage() {
         data: { status: 'rejected' }
       });
     } else {
-      // Just close the modal if it's a new receipt being rejected
       setSelectedReceipt(null);
     }
   };
@@ -136,6 +133,7 @@ export default function BatchDetailsPage() {
 
   const pendingReceipts = receipts.filter(r => r.status === 'pending');
   const approvedReceipts = receipts.filter(r => r.status === 'approved');
+  const isCompleted = batch?.status === 'completed';
 
   return (
     <div className="p-4 md:p-8 min-h-screen">
@@ -152,7 +150,7 @@ export default function BatchDetailsPage() {
           <div className="flex-1">
             <BatchHeader batch={batch} />
           </div>
-          {batch?.status !== 'completed' && receipts.length > 0 && (
+          {!isCompleted && receipts.length > 0 && (
             <Button
               onClick={handleFinalizeBatch}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg"
@@ -163,48 +161,52 @@ export default function BatchDetailsPage() {
           )}
         </div>
 
-        {batch?.status !== 'completed' && (
-          <UploadSection 
-            batchId={batchId}
-            onReceiptProcessed={setSelectedReceipt}
-          />
+        {/* Always show upload section for open and processing batches */}
+        {!isCompleted && (
+          <div className="mb-8">
+            <UploadSection 
+              batchId={batchId}
+              onReceiptProcessed={setSelectedReceipt}
+            />
+          </div>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-6 mt-8">
-          {pendingReceipts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-xl font-bold text-slate-900">ממתין לאישור</h2>
-                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                  {pendingReceipts.length}
-                </Badge>
+        {/* Receipts sections */}
+        {receipts.length > 0 ? (
+          <div className="grid lg:grid-cols-2 gap-6">
+            {pendingReceipts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">ממתין לאישור</h2>
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    {pendingReceipts.length}
+                  </Badge>
+                </div>
+                <ReceiptsGrid 
+                  receipts={pendingReceipts}
+                  onSelectReceipt={setSelectedReceipt}
+                  showStatus={false}
+                />
               </div>
-              <ReceiptsGrid 
-                receipts={pendingReceipts}
-                onSelectReceipt={setSelectedReceipt}
-                showStatus={false}
-              />
-            </div>
-          )}
+            )}
 
-          {approvedReceipts.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-xl font-bold text-slate-900">אושרו</h2>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  {approvedReceipts.length}
-                </Badge>
+            {approvedReceipts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <h2 className="text-xl font-bold text-slate-900">אושרו</h2>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    {approvedReceipts.length}
+                  </Badge>
+                </div>
+                <ReceiptsGrid 
+                  receipts={approvedReceipts}
+                  onSelectReceipt={setSelectedReceipt}
+                  showStatus={true}
+                />
               </div>
-              <ReceiptsGrid 
-                receipts={approvedReceipts}
-                onSelectReceipt={setSelectedReceipt}
-                showStatus={true}
-              />
-            </div>
-          )}
-        </div>
-
-        {receipts.length === 0 && !receiptsLoading && (
+            )}
+          </div>
+        ) : !receiptsLoading && (
           <div className="text-center py-20">
             <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Upload className="w-12 h-12 text-slate-400" />
