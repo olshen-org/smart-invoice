@@ -2,37 +2,46 @@ import React, { useState, useRef } from 'react';
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, FileImage, Loader2, CheckCircle, X } from "lucide-react";
+import { Upload, FileImage, Loader2, CheckCircle, X, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function UploadSection({ batchId, onReceiptProcessed }) {
   const [files, setFiles] = useState([]);
   const [processing, setProcessing] = useState({});
   const [progress, setProgress] = useState({});
+  const [errors, setErrors] = useState({});
+  const [processedData, setProcessedData] = useState({});
   const fileInputRef = useRef(null);
 
   const handleFileSelect = async (e) => {
     const selectedFiles = Array.from(e.target.files);
-    setFiles(prev => [...prev, ...selectedFiles]);
+    const newFiles = selectedFiles.map(file => ({
+      file,
+      id: `${file.name}-${Date.now()}-${Math.random()}`
+    }));
+    
+    setFiles(prev => [...prev, ...newFiles]);
     
     // Process files one by one
-    for (const file of selectedFiles) {
-      await processFile(file);
+    for (const fileObj of newFiles) {
+      await processFile(fileObj);
     }
   };
 
-  const processFile = async (file) => {
-    const fileId = `${file.name}-${Date.now()}`;
-    setProcessing(prev => ({ ...prev, [fileId]: true }));
-    setProgress(prev => ({ ...prev, [fileId]: 10 }));
+  const processFile = async (fileObj) => {
+    const { file, id } = fileObj;
+    setProcessing(prev => ({ ...prev, [id]: true }));
+    setProgress(prev => ({ ...prev, [id]: 10 }));
+    setErrors(prev => ({ ...prev, [id]: null }));
 
     try {
       // Upload
-      setProgress(prev => ({ ...prev, [fileId]: 30 }));
+      setProgress(prev => ({ ...prev, [id]: 30 }));
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
       
       // Extract data
-      setProgress(prev => ({ ...prev, [fileId]: 60 }));
+      setProgress(prev => ({ ...prev, [id]: 60 }));
       const schema = await base44.entities.Receipt.schema();
       
       const result = await base44.integrations.Core.InvokeLLM({
@@ -47,44 +56,73 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
 - מטבע (ברירת מחדל ILS)
 - אמצעי תשלום
 - כל הפריטים/שורות בקבלה עם כמות, מחיר יחידה וסכום
-- חשב את הסכומים הכוללים בדיוק`,
+- חשב את הסכומים הכוללים בדיוק
+
+אם זה PDF, וודא שאתה קורא את כל הטקסט בקובץ.`,
         file_urls: [file_url],
         response_json_schema: schema
       });
 
-      setProgress(prev => ({ ...prev, [fileId]: 100 }));
+      setProgress(prev => ({ ...prev, [id]: 100 }));
       
-      // Pass to review modal
-      onReceiptProcessed({
+      const extractedData = {
         ...result,
         receipt_image_url: file_url,
         batch_id: batchId,
         status: 'pending'
-      });
-
-      // Remove from list after a delay
-      setTimeout(() => {
-        setFiles(prev => prev.filter(f => f !== file));
-        setProcessing(prev => {
-          const newState = { ...prev };
-          delete newState[fileId];
-          return newState;
-        });
-        setProgress(prev => {
-          const newState = { ...prev };
-          delete newState[fileId];
-          return newState;
-        });
-      }, 1000);
+      };
+      
+      // Store processed data
+      setProcessedData(prev => ({ ...prev, [id]: extractedData }));
+      
+      // Open review modal
+      onReceiptProcessed(extractedData);
 
     } catch (error) {
       console.error("Error processing file:", error);
-      setProcessing(prev => ({ ...prev, [fileId]: false }));
+      setErrors(prev => ({ 
+        ...prev, 
+        [id]: error.message || "שגיאה בעיבוד הקובץ. אנא נסה שוב."
+      }));
+    } finally {
+      setProcessing(prev => ({ ...prev, [id]: false }));
     }
   };
 
-  const removeFile = (file) => {
-    setFiles(prev => prev.filter(f => f !== file));
+  const removeFile = (fileObj) => {
+    setFiles(prev => prev.filter(f => f.id !== fileObj.id));
+    setProcessing(prev => {
+      const newState = { ...prev };
+      delete newState[fileObj.id];
+      return newState;
+    });
+    setProgress(prev => {
+      const newState = { ...prev };
+      delete newState[fileObj.id];
+      return newState;
+    });
+    setErrors(prev => {
+      const newState = { ...prev };
+      delete newState[fileObj.id];
+      return newState;
+    });
+    setProcessedData(prev => {
+      const newState = { ...prev };
+      delete newState[fileObj.id];
+      return newState;
+    });
+  };
+
+  const retryFile = (fileObj) => {
+    setErrors(prev => ({ ...prev, [fileObj.id]: null }));
+    processFile(fileObj);
+  };
+
+  const reviewAgain = (fileObj) => {
+    const data = processedData[fileObj.id];
+    if (data) {
+      onReceiptProcessed(data);
+    }
   };
 
   return (
@@ -113,53 +151,100 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
             <FileImage className="w-8 h-8 text-white" />
           </div>
           <h3 className="text-lg font-bold text-slate-900 mb-2">גרור קבצים או לחץ לבחירה</h3>
-          <p className="text-sm text-slate-500">ניתן להעלות מספר קבלות בו זמנית</p>
+          <p className="text-sm text-slate-500">ניתן להעלות מספר קבלות בו זמנית (תמונות או PDF)</p>
         </div>
 
         {files.length > 0 && (
           <div className="mt-6 space-y-3">
-            {files.map((file, index) => {
-              const fileId = `${file.name}-${Date.now()}`;
-              const isProcessing = processing[fileId];
-              const fileProgress = progress[fileId] || 0;
+            {files.map((fileObj) => {
+              const { file, id } = fileObj;
+              const isProcessing = processing[id];
+              const fileProgress = progress[id] || 0;
+              const error = errors[id];
+              const hasProcessedData = !!processedData[id];
 
               return (
                 <div
-                  key={index}
-                  className={`flex items-center gap-3 p-4 rounded-xl border ${
-                    isProcessing ? 'border-blue-500 bg-blue-50' : 'border-slate-200'
+                  key={id}
+                  className={`rounded-xl border transition-all ${
+                    error ? 'border-red-500 bg-red-50' :
+                    isProcessing ? 'border-blue-500 bg-blue-50' : 
+                    hasProcessedData ? 'border-green-500 bg-green-50' :
+                    'border-slate-200'
                   }`}
                 >
-                  <FileImage className="w-8 h-8 text-blue-500 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">{file.name}</p>
-                    {isProcessing && (
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm text-slate-500">מעבד...</span>
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                  <div className="flex items-center gap-3 p-4">
+                    <FileImage className={`w-8 h-8 flex-shrink-0 ${
+                      error ? 'text-red-500' :
+                      isProcessing ? 'text-blue-500' :
+                      hasProcessedData ? 'text-green-500' :
+                      'text-slate-500'
+                    }`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 truncate">{file.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      
+                      {isProcessing && (
+                        <div className="mt-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm text-slate-600">מעבד עם Gemini...</span>
+                            <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                          </div>
+                          <Progress value={fileProgress} className="h-1.5" />
                         </div>
-                        <Progress value={fileProgress} className="h-1" />
-                      </div>
-                    )}
-                    {fileProgress === 100 && (
-                      <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
-                        <CheckCircle className="w-4 h-4" />
-                        הושלם
-                      </div>
-                    )}
+                      )}
+                      
+                      {hasProcessedData && !error && (
+                        <div className="flex items-center gap-1 text-sm text-green-700 mt-1 font-medium">
+                          <CheckCircle className="w-4 h-4" />
+                          עובד - לחץ לעיון חוזר
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {hasProcessedData && !isProcessing && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => reviewAgain(fileObj)}
+                          className="text-xs"
+                        >
+                          עיון חוזר
+                        </Button>
+                      )}
+                      {error && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => retryFile(fileObj)}
+                          className="text-xs"
+                        >
+                          נסה שוב
+                        </Button>
+                      )}
+                      {!isProcessing && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFile(fileObj)}
+                          className="h-8 w-8"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {!isProcessing && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeFile(file);
-                      }}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
+                  
+                  {error && (
+                    <div className="px-4 pb-4">
+                      <Alert variant="destructive" className="bg-red-100 border-red-300">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="text-sm">{error}</AlertDescription>
+                      </Alert>
+                    </div>
                   )}
                 </div>
               );

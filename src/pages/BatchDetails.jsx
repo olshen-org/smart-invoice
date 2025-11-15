@@ -19,12 +19,13 @@ export default function BatchDetailsPage() {
   const batchId = urlParams.get('id');
 
   const [selectedReceipt, setSelectedReceipt] = useState(null);
-  const [pendingFiles, setPendingFiles] = useState([]);
 
   const { data: batch, isLoading: batchLoading } = useQuery({
     queryKey: ['batch', batchId],
-    queryFn: () => base44.entities.Batch.filter({ id: batchId }),
-    select: (data) => data[0],
+    queryFn: async () => {
+      const results = await base44.entities.Batch.filter({ id: batchId });
+      return results[0];
+    },
     enabled: !!batchId,
   });
 
@@ -47,6 +48,7 @@ export default function BatchDetailsPage() {
     mutationFn: ({ id, data }) => base44.entities.Receipt.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+      setSelectedReceipt(null);
       updateBatchStats();
     },
   });
@@ -55,6 +57,7 @@ export default function BatchDetailsPage() {
     mutationFn: (receiptData) => base44.entities.Receipt.create(receiptData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
+      setSelectedReceipt(null);
       updateBatchStats();
     },
   });
@@ -87,29 +90,32 @@ export default function BatchDetailsPage() {
   };
 
   const handleApproveReceipt = (receiptData) => {
-    if (selectedReceipt) {
+    if (selectedReceipt?.id) {
+      // Updating existing receipt
       updateReceiptMutation.mutate({
         id: selectedReceipt.id,
         data: { ...receiptData, status: 'approved' }
       });
     } else {
+      // Creating new receipt
       createReceiptMutation.mutate({
         ...receiptData,
         batch_id: batchId,
         status: 'approved'
       });
     }
-    setSelectedReceipt(null);
   };
 
   const handleRejectReceipt = () => {
-    if (selectedReceipt) {
+    if (selectedReceipt?.id) {
       updateReceiptMutation.mutate({
         id: selectedReceipt.id,
         data: { status: 'rejected' }
       });
+    } else {
+      // Just close the modal if it's a new receipt being rejected
+      setSelectedReceipt(null);
     }
-    setSelectedReceipt(null);
   };
 
   if (!batchId) {
@@ -161,8 +167,6 @@ export default function BatchDetailsPage() {
           <UploadSection 
             batchId={batchId}
             onReceiptProcessed={setSelectedReceipt}
-            pendingFiles={pendingFiles}
-            setPendingFiles={setPendingFiles}
           />
         )}
 
