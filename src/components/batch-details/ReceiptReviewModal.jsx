@@ -48,13 +48,19 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
       if (isPDF && receipt.receipt_image_url) {
         try {
           const response = await base44.functions.invoke('serveFile', { fileUrl: receipt.receipt_image_url });
-          const blob = new Blob([response.data], { type: 'application/pdf' });
+          
+          // response.data contains the ArrayBuffer
+          const uint8Array = new Uint8Array(response.data);
+          const blob = new Blob([uint8Array], { type: 'application/pdf' });
           const url = URL.createObjectURL(blob);
           setPdfBlobUrl(url);
         } catch (error) {
           console.error('Error loading PDF:', error);
         }
       } else {
+        if (pdfBlobUrl) {
+          URL.revokeObjectURL(pdfBlobUrl);
+        }
         setPdfBlobUrl(null);
       }
     };
@@ -126,11 +132,17 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                 {isReceiptPDF ? (
-                  <iframe
-                    src={pdfBlobUrl}
-                    className="w-full aspect-[3/4]"
-                    title="Receipt PDF"
-                  />
+                  pdfBlobUrl ? (
+                    <iframe
+                      src={pdfBlobUrl}
+                      className="w-full aspect-[3/4]"
+                      title="Receipt PDF"
+                    />
+                  ) : (
+                    <div className="w-full aspect-[3/4] flex items-center justify-center">
+                      <p className="text-slate-500">טוען PDF...</p>
+                    </div>
+                  )
                 ) : (
                   <img 
                     src={editedData.receipt_image_url} 

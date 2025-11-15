@@ -9,14 +9,20 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { fileUrl } = await req.json();
+    const body = await req.json();
+    const fileUrl = body.fileUrl;
     
     if (!fileUrl) {
       return Response.json({ error: 'Missing fileUrl' }, { status: 400 });
     }
 
     const response = await fetch(fileUrl);
-    const blob = await response.blob();
+    
+    if (!response.ok) {
+      return Response.json({ error: 'Failed to fetch file' }, { status: response.status });
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
     
     // Detect content type from URL
     const ext = fileUrl.toLowerCase().split('.').pop().split('?')[0];
@@ -31,7 +37,7 @@ Deno.serve(async (req) => {
     
     const contentType = contentTypes[ext] || 'application/octet-stream';
     
-    return new Response(blob, {
+    return new Response(arrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': contentType,
