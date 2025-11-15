@@ -33,11 +33,13 @@ export default function ReceiptsGrid({
           <TableRow className="bg-slate-50">
             {onToggleSelect && (
               <TableHead className="w-12">
-                <Checkbox
-                  checked={allSelected}
-                  onCheckedChange={onToggleSelectAll}
-                  className={someSelected ? "data-[state=checked]:bg-blue-600" : ""}
-                />
+                <div className="flex items-center justify-center">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={onToggleSelectAll}
+                    className={someSelected ? "data-[state=checked]:bg-blue-600" : ""}
+                  />
+                </div>
               </TableHead>
             )}
             <TableHead className="text-right">תמונה</TableHead>
@@ -63,10 +65,12 @@ export default function ReceiptsGrid({
               >
                 {onToggleSelect && (
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => onToggleSelect(receipt.id)}
-                    />
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleSelect(receipt.id)}
+                      />
+                    </div>
                   </TableCell>
                 )}
                 <TableCell className="w-16">

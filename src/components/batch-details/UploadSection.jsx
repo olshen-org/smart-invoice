@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const RECEIPT_SCHEMA = {
@@ -32,7 +32,14 @@ const RECEIPT_SCHEMA = {
   required: ["vendor_name", "date", "total_amount"]
 };
 
-export default function UploadSection({ batchId, onReceiptProcessed }) {
+export default function UploadSection({ 
+  batchId, 
+  onReceiptProcessed,
+  selectedCount = 0,
+  onApproveAll,
+  onRejectAll,
+  onDeleteAll
+}) {
   const fileInputRef = useRef(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -116,10 +123,49 @@ export default function UploadSection({ batchId, onReceiptProcessed }) {
             </>
           )}
         </Button>
+        
         {isProcessing && (
           <div className="flex-1">
             <Progress value={progress} className="h-2" />
           </div>
+        )}
+
+        {selectedCount > 0 && (
+          <>
+            <div className="flex-1" />
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-600">
+                <strong>{selectedCount}</strong> נבחרו
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={onApproveAll}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <CheckCircle className="w-4 h-4 ml-1" />
+                  אשר הכל
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={onRejectAll}
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <XCircle className="w-4 h-4 ml-1" />
+                  דחה הכל
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={onDeleteAll}
+                  variant="destructive"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="w-4 h-4 ml-1" />
+                  מחק הכל
+                </Button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -11,7 +11,6 @@ import BatchHeader from "../components/batch-details/BatchHeader";
 import UploadSection from "../components/batch-details/UploadSection";
 import ReceiptsGrid from "../components/batch-details/ReceiptsGrid";
 import ReceiptReviewModal from "../components/batch-details/ReceiptReviewModal";
-import BulkActionsBar from "../components/batch-details/BulkActionsBar";
 
 export default function BatchDetailsPage() {
   const navigate = useNavigate();
@@ -230,6 +229,10 @@ export default function BatchDetailsPage() {
         <UploadSection 
           batchId={batchId}
           onReceiptProcessed={setSelectedReceipt}
+          selectedCount={selectedIds.length}
+          onApproveAll={handleBulkApprove}
+          onRejectAll={handleBulkReject}
+          onDeleteAll={handleBulkDelete}
         />
 
         {receipts.length > 0 ? (
@@ -301,14 +304,6 @@ export default function BatchDetailsPage() {
             <p className="text-sm text-slate-500">התחל להעלות קבלות לאצווה זו</p>
           </div>
         )}
-
-        <BulkActionsBar
-          selectedCount={selectedIds.length}
-          onApproveAll={handleBulkApprove}
-          onRejectAll={handleBulkReject}
-          onDeleteAll={handleBulkDelete}
-          onClear={() => setSelectedIds([])}
-        />
 
         {selectedReceipt && (
           <ReceiptReviewModal
