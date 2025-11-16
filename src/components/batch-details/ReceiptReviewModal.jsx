@@ -10,10 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CheckCircle, XCircle, Calculator } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { base44 } from "@/api/base44Client";
 
 const CATEGORIES = [
   { value: "office_supplies", label: "ציוד משרדי" },
@@ -38,40 +37,9 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
   const [editedData, setEditedData] = useState(receipt);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
 
   useEffect(() => {
     setEditedData(receipt);
-    
-    const loadPDF = async () => {
-      const isPDF = receipt?.receipt_image_url?.toLowerCase().endsWith('.pdf');
-      if (isPDF && receipt.receipt_image_url) {
-        try {
-          const response = await base44.functions.invoke('serveFile', { fileUrl: receipt.receipt_image_url });
-          
-          // response.data contains the ArrayBuffer
-          const uint8Array = new Uint8Array(response.data);
-          const blob = new Blob([uint8Array], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          setPdfBlobUrl(url);
-        } catch (error) {
-          console.error('Error loading PDF:', error);
-        }
-      } else {
-        if (pdfBlobUrl) {
-          URL.revokeObjectURL(pdfBlobUrl);
-        }
-        setPdfBlobUrl(null);
-      }
-    };
-    
-    loadPDF();
-    
-    return () => {
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-      }
-    };
   }, [receipt]);
 
   const handleInputChange = (field, value) => {
@@ -132,17 +100,20 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
                 {isReceiptPDF ? (
-                  pdfBlobUrl ? (
-                    <iframe
-                      src={pdfBlobUrl}
-                      className="w-full aspect-[3/4]"
-                      title="Receipt PDF"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[3/4] flex items-center justify-center">
-                      <p className="text-slate-500">טוען PDF...</p>
-                    </div>
-                  )
+                  <div className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-4 p-8">
+                    <svg className="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-lg font-semibold text-slate-700">קובץ PDF</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(editedData.receipt_image_url, '_blank')}
+                      className="gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      פתח בחלון חדש
+                    </Button>
+                  </div>
                 ) : (
                   <img 
                     src={editedData.receipt_image_url} 
