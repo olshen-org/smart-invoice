@@ -101,27 +101,59 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4 order-2 lg:order-1">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
-                <div className="w-full h-[600px] relative group">
-                   {/* Desktop View - Iframe */}
-                   <iframe
-                      src={editedData.receipt_image_url}
-                      className="w-full h-full hidden md:block rounded-xl bg-slate-100"
-                      title="PDF Viewer"
-                   />
-                   
-                   {/* Mobile View - Button */}
-                   <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
-                       <FileText className="w-16 h-16 text-slate-400 mb-4" />
-                       <p className="text-slate-500 mb-4">קבצי PDF יש לפתוח בחלון חדש</p>
-                       <Button
-                           onClick={() => window.open(editedData.receipt_image_url, '_blank')}
-                           className="bg-blue-600 text-white"
-                       >
-                           <ExternalLink className="w-4 h-4 ml-2" />
-                           פתח מסמך
-                       </Button>
-                   </div>
-                </div>
+                isLoadingPdf ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <p className="text-sm text-slate-500">טוען קובץ...</p>
+                  </div>
+                ) : pdfBlobUrl ? (
+                  <div className="w-full h-[600px] relative group">
+                     {/* Desktop View - Iframe */}
+                     <iframe
+                        src={pdfBlobUrl}
+                        className="w-full h-full hidden md:block rounded-xl bg-slate-100"
+                        title="PDF Viewer"
+                     />
+                     
+                     {/* Mobile View - Button */}
+                     <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                         <FileText className="w-16 h-16 text-slate-400 mb-4" />
+                         <p className="text-slate-500 mb-4">לחץ לפתיחת הקובץ</p>
+                         <Button
+                             onClick={() => window.open(pdfBlobUrl, '_blank')}
+                             className="bg-blue-600 text-white"
+                         >
+                             <ExternalLink className="w-4 h-4 ml-2" />
+                             הצג מסמך
+                         </Button>
+                     </div>
+
+                     {/* Desktop Overlay Button */}
+                     <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="shadow-lg bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
+                            onClick={() => window.open(pdfBlobUrl, '_blank')}
+                        >
+                            <ExternalLink className="w-4 h-4 ml-2" />
+                            פתח בחלון חדש
+                        </Button>
+                     </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                     <p className="text-red-500">שגיאה בטעינת הקובץ</p>
+                     <Button
+                      variant="outline"
+                      onClick={() => window.open(editedData.receipt_image_url, '_blank')}
+                      className="gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      נסה לפתוח קישור ישיר
+                    </Button>
+                  </div>
+                )
               ) : (
                 <img 
                   src={editedData.receipt_image_url} 
