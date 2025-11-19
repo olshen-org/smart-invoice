@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink, Loader2 } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -37,10 +38,31 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
   const [editedData, setEditedData] = useState(receipt);
+  const [pdfData, setPdfData] = useState(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   useEffect(() => {
     setEditedData(receipt);
   }, [receipt]);
+
+  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+  const isReceiptPDF = isPDF(editedData.receipt_image_url);
+
+  useEffect(() => {
+    if (isReceiptPDF && editedData.receipt_image_url) {
+      setIsLoadingPdf(true);
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url })
+        .then(({ data }) => {
+          if (data.file_data) {
+             setPdfData(`data:${data.content_type};base64,${data.file_data}`);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsLoadingPdf(false));
+    } else {
+       setPdfData(null);
+    }
+  }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -98,14 +120,23 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
           <div className="grid lg:grid-cols-2 gap-6 p-1">
             {/* Image/PDF Preview */}
             <div className="space-y-4">
-              <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50">
-                {isReceiptPDF ? (
-                  <div className="w-full aspect-[3/4] flex flex-col items-center justify-center gap-4 p-8">
-                    <svg className="w-20 h-20 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                    </svg>
-                    <p className="text-lg font-semibold text-slate-700">קובץ PDF</p>
-                    <Button
+              <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[500px] flex items-center justify-center">
+              {isReceiptPDF ? (
+                isLoadingPdf ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                    <p className="text-sm text-slate-500">טוען קובץ...</p>
+                  </div>
+                ) : pdfData ? (
+                  <iframe 
+                    src={pdfData} 
+                    className="w-full h-[600px]" 
+                    title="PDF Viewer"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                     <p className="text-red-500">שגיאה בטעינת הקובץ</p>
+                     <Button
                       variant="outline"
                       onClick={() => window.open(editedData.receipt_image_url, '_blank')}
                       className="gap-2"
@@ -114,13 +145,14 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                       פתח בחלון חדש
                     </Button>
                   </div>
-                ) : (
-                  <img 
-                    src={editedData.receipt_image_url} 
-                    alt="Receipt" 
-                    className="w-full h-auto"
-                  />
-                )}
+                )
+              ) : (
+                <img 
+                  src={editedData.receipt_image_url} 
+                  alt="Receipt" 
+                  className="w-full h-auto max-h-[600px] object-contain"
+                />
+              )}
               </div>
             </div>
 
