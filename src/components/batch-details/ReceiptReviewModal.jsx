@@ -45,6 +45,7 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
     setEditedData(receipt);
   }, [receipt]);
 
+  // Helper to check for PDF
   const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
 
