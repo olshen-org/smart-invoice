@@ -131,25 +131,12 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
                 <div className="w-full h-[600px] relative group">
-                   {/* Google Docs Viewer (Works great on mobile & ignores content-disposition) */}
+                   {/* Google Docs Viewer */}
                    <iframe
                       src={`https://docs.google.com/gview?url=${encodeURIComponent(editedData.receipt_image_url)}&embedded=true`}
                       className="w-full h-full rounded-xl bg-slate-100"
-                      frameBorder="0"
-                   >
-                       {/* Fallback */}
-                       <div className="flex flex-col items-center justify-center h-full bg-slate-50 rounded-xl p-8 text-center">
-                           <FileText className="w-16 h-16 text-slate-400 mb-4" />
-                           <p className="text-slate-500 mb-4">לא ניתן להציג את התצוגה המקדימה</p>
-                           <Button
-                               onClick={() => window.open(editedData.receipt_image_url, '_blank')}
-                               className="bg-blue-600 text-white"
-                           >
-                               <ExternalLink className="w-4 h-4 ml-2" />
-                               פתח מסמך
-                           </Button>
-                       </div>
-                   </iframe>
+                      title="PDF Viewer"
+                   />
                 </div>
               ) : (
                 <img 
