@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { Buffer } from "node:buffer";
 
 export default Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
@@ -20,38 +21,32 @@ export default Deno.serve(async (req) => {
         }
 
         let file_url;
-        
         if (req.method === "GET") {
             const url = new URL(req.url);
             file_url = url.searchParams.get("file_url");
         } else {
-            // Handle potential empty body or wrong content type
-            try {
-                const body = await req.json();
-                file_url = body.file_url;
-            } catch (e) {
-                return Response.json({ error: "Invalid JSON body" }, { status: 400 });
-            }
+            const body = await req.json();
+            file_url = body.file_url;
         }
 
         if (!file_url) {
             return Response.json({ error: "file_url is required" }, { status: 400 });
         }
 
-        // Fetch the file from the URL
         const fileResponse = await fetch(file_url);
-        
         if (!fileResponse.ok) {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
         
-        // Stream the body directly
-        return new Response(fileResponse.body, {
-            headers: {
-                "Content-Type": fileResponse.headers.get("content-type") || "application/pdf",
-                "Content-Disposition": "inline",
-                "Access-Control-Allow-Origin": "*"
-            }
+        // Note: Returning Base64 to ensure safe transport through the SDK which expects JSON.
+        // The client will convert this back to a Blob for inline rendering.
+        const arrayBuffer = await fileResponse.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = fileResponse.headers.get("content-type") || "application/pdf";
+
+        return Response.json({ 
+            file_data: base64,
+            content_type: contentType
         });
 
     } catch (error) {
