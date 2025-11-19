@@ -40,11 +40,12 @@ export default Deno.serve(async (req) => {
         
         // Stream the file directly with correct headers
         return new Response(fileResponse.body, {
+            status: 200,
             headers: {
-                "Content-Type": "application/pdf", // Force PDF as this is used for PDF viewing
+                "Content-Type": "application/pdf",
                 "Content-Disposition": "inline; filename=receipt.pdf",
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "no-cache" 
+                "Cache-Control": "no-store, max-age=0", 
+                "Access-Control-Allow-Origin": "*"
             }
         });
 
