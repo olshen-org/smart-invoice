@@ -54,24 +54,18 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url })
-        .then(({ data }) => {
-          if (data.file_data) {
-            try {
-              // Decode Base64 to binary
-              const binaryString = atob(data.file_data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              const blob = new Blob([bytes], { type: data.content_type || 'application/pdf' });
-              objectUrl = URL.createObjectURL(blob);
-              setPdfData(objectUrl);
-            } catch (e) {
-              console.error("PDF conversion error:", e);
-              setPdfData(null);
-            }
-          }
+      // Fetch binary blob directly
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
+        .then((response) => {
+           // When responseType is blob, response.data is the Blob
+           const blob = response.data;
+           // Ensure it is a blob before creating URL
+           if (blob instanceof Blob) {
+               objectUrl = URL.createObjectURL(blob);
+               setPdfData(objectUrl);
+           } else {
+               console.error("Response is not a blob", blob);
+           }
         })
         .catch((err) => {
             console.error("Error loading PDF:", err);
@@ -150,22 +144,11 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                     <p className="text-sm text-slate-500">טוען קובץ...</p>
                   </div>
                 ) : pdfData ? (
-                  <object
-                    data={pdfData}
-                    type="application/pdf"
-                    className="w-full h-[600px]"
-                  >
-                    <div className="flex flex-col items-center justify-center h-full gap-4 p-4 text-center">
-                      <p className="text-slate-500">הדפדפן אינו תומך בתצוגת PDF</p>
-                      <Button
-                        variant="outline"
-                        onClick={() => window.open(pdfData, '_blank')}
-                      >
-                        <ExternalLink className="w-4 h-4 ml-2" />
-                        פתח בחלון חדש
-                      </Button>
-                    </div>
-                  </object>
+                  <iframe 
+                    src={pdfData} 
+                    className="w-full h-[600px]" 
+                    title="PDF Viewer"
+                  />
                 ) : (
                   <div className="flex flex-col items-center gap-4">
                      <p className="text-red-500">שגיאה בטעינת הקובץ</p>

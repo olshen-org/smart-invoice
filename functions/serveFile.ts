@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { Buffer } from "node:buffer";
 
 export default Deno.serve(async (req) => {
+    // Handle CORS preflight
     if (req.method === "OPTIONS") {
         return new Response(null, {
             headers: {
@@ -38,15 +38,14 @@ export default Deno.serve(async (req) => {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
         
-        // Note: Returning Base64 to ensure safe transport through the SDK which expects JSON.
-        // The client will convert this back to a Blob for inline rendering.
-        const arrayBuffer = await fileResponse.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const contentType = fileResponse.headers.get("content-type") || "application/pdf";
-
-        return Response.json({ 
-            file_data: base64,
-            content_type: contentType
+        // Stream the file directly with correct headers
+        return new Response(fileResponse.body, {
+            headers: {
+                "Content-Type": "application/pdf", // Force PDF as this is used for PDF viewing
+                "Content-Disposition": "inline; filename=receipt.pdf",
+                "Access-Control-Allow-Origin": "*",
+                "Cache-Control": "no-cache" 
+            }
         });
 
     } catch (error) {
