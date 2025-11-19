@@ -127,16 +127,16 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
   return (
     <Dialog open={!!receipt} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh]" dir="rtl">
+      <DialogContent className="w-full h-full md:max-w-6xl md:h-[95vh] max-w-none m-0 rounded-none md:rounded-xl p-4 md:p-6" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">אישור קבלה</DialogTitle>
+          <DialogTitle className="text-xl md:text-2xl font-bold">אישור קבלה</DialogTitle>
         </DialogHeader>
-        
-        <ScrollArea className="max-h-[calc(95vh-120px)]">
-          <div className="grid lg:grid-cols-2 gap-6 p-1">
+
+        <ScrollArea className="h-[calc(100vh-100px)] md:max-h-[calc(95vh-120px)]">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 p-1 pb-20 md:pb-1">
             {/* Image/PDF Preview */}
-            <div className="space-y-4">
-              <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[500px] flex items-center justify-center">
+            <div className="space-y-4 order-2 lg:order-1">
+              <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
                 isLoadingPdf ? (
                   <div className="flex flex-col items-center gap-2">
@@ -342,24 +342,24 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
           </div>
         </ScrollArea>
 
-        <div className="flex justify-end gap-3 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={onReject}
-            disabled={isProcessing}
-            className="rounded-xl"
-          >
-            <XCircle className="w-4 h-4 ml-1" /> דחה
-          </Button>
-          <Button
-            onClick={() => onApprove(editedData)}
-            disabled={isProcessing}
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl"
-          >
-            <CheckCircle className="w-4 h-4 ml-1" /> אשר וצור קבלה
-          </Button>
+        <div className="flex justify-end gap-3 pt-4 border-t fixed bottom-0 left-0 right-0 bg-white p-4 border-t-slate-200 md:static md:bg-transparent md:p-0 md:border-t-0 z-10">
+        <Button
+        variant="outline"
+        onClick={onReject}
+        disabled={isProcessing}
+        className="rounded-xl flex-1 md:flex-none"
+        >
+        <XCircle className="w-4 h-4 ml-1" /> דחה
+        </Button>
+        <Button
+        onClick={() => onApprove(editedData)}
+        disabled={isProcessing}
+        className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-xl flex-1 md:flex-none"
+        >
+        <CheckCircle className="w-4 h-4 ml-1" /> אשר וצור קבלה
+        </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+        </Dialog>
   );
 }

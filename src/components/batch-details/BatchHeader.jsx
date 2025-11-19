@@ -19,20 +19,20 @@ export default function BatchHeader({ batch }) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">{batch.batch_name}</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-2">
+        <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">{batch.batch_name}</h1>
           {batch.customer_name && (
-            <span className="text-slate-500">לקוח: {batch.customer_name}</span>
+            <span className="text-sm text-slate-500">לקוח: {batch.customer_name}</span>
           )}
         </div>
-        <Badge className={`${status.color} border-0 flex items-center gap-1.5 px-3 py-1`}>
+        <Badge className={`${status.color} border-0 flex items-center gap-1.5 px-3 py-1 w-fit`}>
           <StatusIcon className="w-3.5 h-3.5" />
           {status.label}
         </Badge>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <p className="text-xs text-slate-500 mb-1">קבלות</p>
           <p className="text-xl font-bold text-slate-900">

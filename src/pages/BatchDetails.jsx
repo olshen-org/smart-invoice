@@ -202,23 +202,37 @@ export default function BatchDetailsPage() {
   const isCompleted = batch?.status === 'completed';
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Batches"))}
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
+    <div className="p-4 md:p-6 min-h-screen">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+        <div className="flex flex-col md:flex-row items-start md:items-start gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate(createPageUrl("Batches"))}
+              >
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+              {/* Mobile only finalize button */}
+              {!isCompleted && receipts.length > 0 && (
+                <Button
+                  onClick={handleFinalizeBatch}
+                  className="bg-green-600 hover:bg-green-700 mr-auto md:hidden"
+                  size="sm"
+                >
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                  סגור
+                </Button>
+              )}
+          </div>
+          <div className="flex-1 w-full">
             <BatchHeader batch={batch} />
           </div>
+          {/* Desktop only finalize button */}
           {!isCompleted && receipts.length > 0 && (
             <Button
               onClick={handleFinalizeBatch}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 hidden md:flex"
             >
               <CheckCircle className="w-4 h-4 ml-2" />
               סגור אצווה

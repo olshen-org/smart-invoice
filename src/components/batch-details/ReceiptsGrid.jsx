@@ -44,9 +44,9 @@ export default function ReceiptsGrid({
             )}
             <TableHead className="text-right">תמונה</TableHead>
             <TableHead className="text-right">ספק</TableHead>
-            <TableHead className="text-right">תאריך</TableHead>
+            <TableHead className="text-right hidden md:table-cell">תאריך</TableHead>
             <TableHead className="text-right">סכום</TableHead>
-            {showStatus && <TableHead className="text-right">סטטוס</TableHead>}
+            {showStatus && <TableHead className="text-right hidden md:table-cell">סטטוס</TableHead>}
             <TableHead className="text-left w-16">פעולות</TableHead>
           </TableRow>
         </TableHeader>
@@ -88,15 +88,27 @@ export default function ReceiptsGrid({
                     </div>
                   )}
                 </TableCell>
-                <TableCell className="font-medium">{receipt.vendor_name}</TableCell>
-                <TableCell className="text-slate-600">
+                <TableCell className="font-medium">
+                    {receipt.vendor_name}
+                    <div className="md:hidden text-xs text-slate-500 mt-1">
+                         {format(new Date(receipt.date), "d/M/yyyy", { locale: he })}
+                    </div>
+                    {showStatus && (
+                        <div className="md:hidden mt-1">
+                             <Badge className={`${status.color} border-0 text-[10px] px-1.5 py-0`}>
+                                {status.label}
+                             </Badge>
+                        </div>
+                    )}
+                </TableCell>
+                <TableCell className="text-slate-600 hidden md:table-cell">
                   {format(new Date(receipt.date), "d/M/yyyy", { locale: he })}
                 </TableCell>
                 <TableCell className="font-bold">
                   ₪{receipt.total_amount?.toLocaleString('he-IL', {minimumFractionDigits: 2})}
                 </TableCell>
                 {showStatus && (
-                  <TableCell>
+                  <TableCell className="hidden md:table-cell">
                     <Badge className={`${status.color} border-0 text-xs`}>
                       <StatusIcon className="w-3 h-3 ml-1" />
                       {status.label}

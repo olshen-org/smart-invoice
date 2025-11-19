@@ -46,9 +46,9 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
             <TableHeader>
               <TableRow className="bg-slate-50">
                 <TableHead className="text-right font-semibold">ספק</TableHead>
-                <TableHead className="text-right font-semibold">תאריך</TableHead>
+                <TableHead className="text-right font-semibold hidden md:table-cell">תאריך</TableHead>
                 <TableHead className="text-right font-semibold">סכום</TableHead>
-                <TableHead className="text-right font-semibold">קטגוריה</TableHead>
+                <TableHead className="text-right font-semibold hidden md:table-cell">קטגוריה</TableHead>
                 <TableHead className="text-right font-semibold">פעולות</TableHead>
               </TableRow>
             </TableHeader>
@@ -81,7 +81,7 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
                         <span className="font-medium">{receipt.vendor_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-2 text-slate-600">
                         <Calendar className="w-4 h-4" />
                         {format(new Date(receipt.date), "d MMMM yyyy", { locale: he })}
@@ -90,7 +90,7 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
                     <TableCell className="font-bold text-slate-900">
                       ₪{receipt.total_amount?.toLocaleString('he-IL', {minimumFractionDigits: 2})}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {receipt.category && (
                         <Badge 
                           variant="secondary"

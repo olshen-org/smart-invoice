@@ -105,11 +105,11 @@ export default function UploadSection({
         className="hidden"
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col md:flex-row md:items-center gap-3">
         <Button
           onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
         >
           {isProcessing ? (
             <>
@@ -123,21 +123,21 @@ export default function UploadSection({
             </>
           )}
         </Button>
-        
+
         {isProcessing && (
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <Progress value={progress} className="h-2" />
           </div>
         )}
 
         {selectedCount > 0 && (
           <>
-            <div className="flex-1" />
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600">
+            <div className="flex-1 hidden md:block" />
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+              <span className="text-sm text-slate-600 text-center md:text-right">
                 <strong>{selectedCount}</strong> נבחרו
               </span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-between md:justify-start">
                 <Button
                   size="sm"
                   onClick={onApproveAll}
