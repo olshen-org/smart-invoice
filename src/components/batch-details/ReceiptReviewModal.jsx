@@ -50,12 +50,23 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
 
   useEffect(() => {
+    let objectUrl = null;
+
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
       base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url })
         .then(({ data }) => {
           if (data.file_data) {
-             setPdfData(`data:${data.content_type};base64,${data.file_data}`);
+            // Convert Base64 to Blob to ensure proper inline rendering without download dialog
+            const byteCharacters = atob(data.file_data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: data.content_type || 'application/pdf' });
+            objectUrl = URL.createObjectURL(blob);
+            setPdfData(objectUrl);
           }
         })
         .catch(console.error)
@@ -63,6 +74,12 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
     } else {
        setPdfData(null);
     }
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {

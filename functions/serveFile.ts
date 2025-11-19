@@ -37,10 +37,11 @@ Deno.serve(async (req) => {
         const base64 = Buffer.from(arrayBuffer).toString('base64');
         const contentType = fileResponse.headers.get("content-type") || "application/pdf";
 
-        // Return base64 encoded file data
+        // Return base64 encoded file data with explicit intention to be rendered inline
         return Response.json({ 
             file_data: base64,
-            content_type: contentType
+            content_type: contentType,
+            disposition: "inline"
         });
 
     } catch (error) {
