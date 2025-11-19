@@ -1,7 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
@@ -79,8 +82,25 @@ export default function UploadPage() {
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedBatchId, setSelectedBatchId] = useState("");
+
+  const { data: batches, isLoading: batchesLoading } = useQuery({
+    queryKey: ['batches'],
+    queryFn: () => base44.entities.Batch.list("-created_date"),
+    initialData: [],
+  });
+
+  useEffect(() => {
+    if (batches.length > 0 && !selectedBatchId) {
+      setSelectedBatchId(batches[0].id);
+    }
+  }, [batches, selectedBatchId]);
 
   const handleFileSelected = async (selectedFile) => {
+    if (!selectedBatchId) {
+      setError("נא לבחור אצווה לפני העלאת קבלה");
+      return;
+    }
     setFile(selectedFile);
     setError(null);
     setExtractedData(null);
@@ -138,8 +158,11 @@ export default function UploadPage() {
   const handleSave = async (finalData) => {
     setIsProcessing(true);
     try {
-      await base44.entities.Receipt.create(finalData);
-      navigate(createPageUrl("Dashboard"));
+      await base44.entities.Receipt.create({
+        ...finalData,
+        batch_id: selectedBatchId
+      });
+      navigate(createPageUrl("BatchDetails") + `?id=${selectedBatchId}`);
     } catch (err) {
       setError("שגיאה בשמירת הקבלה. אנא נסה שוב.");
       setIsProcessing(false);
@@ -180,18 +203,47 @@ export default function UploadPage() {
         )}
 
         {!extractedData ? (
-          <Card className="border-none shadow-2xl shadow-blue-100/50">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold">העלאת מסמך</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UploadZone 
-                onFileSelected={handleFileSelected}
-                isProcessing={isProcessing}
-                progress={uploadProgress}
-              />
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            <Card className="border-none shadow-lg shadow-blue-50">
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <Label>בחר אצווה</Label>
+                  <Select 
+                    value={selectedBatchId} 
+                    onValueChange={setSelectedBatchId}
+                    disabled={isProcessing}
+                  >
+                    <SelectTrigger className="w-full md:w-1/2 text-right" dir="rtl">
+                      <SelectValue placeholder="בחר אצווה..." />
+                    </SelectTrigger>
+                    <SelectContent dir="rtl">
+                      {batches.map((batch) => (
+                        <SelectItem key={batch.id} value={batch.id}>
+                          {batch.batch_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {batches.length === 0 && !batchesLoading && (
+                     <p className="text-sm text-red-500">אין אצוות פתוחות. נא צור אצווה חדשה בלוח האצוות.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow-2xl shadow-blue-100/50">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold">העלאת מסמך</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UploadZone 
+                  onFileSelected={handleFileSelected}
+                  isProcessing={isProcessing}
+                  progress={uploadProgress}
+                />
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <ReceiptPreview 
             extractedData={extractedData}
