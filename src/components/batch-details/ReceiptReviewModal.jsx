@@ -54,10 +54,10 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
-      // Request binary data directly from the function
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
+      // Request binary data as arraybuffer which is more reliable than blob
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'arraybuffer' })
         .then((response) => {
-          // Axios returns the blob in data when responseType is blob
+          // Create blob from arraybuffer
           const blob = new Blob([response.data], { type: 'application/pdf' });
           objectUrl = URL.createObjectURL(blob);
           setPdfData(objectUrl);

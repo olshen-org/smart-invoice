@@ -5,7 +5,7 @@ export default Deno.serve(async (req) => {
         return new Response(null, {
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                 "Access-Control-Allow-Headers": "Content-Type, Authorization",
             },
         });
@@ -19,7 +19,20 @@ export default Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { file_url } = await req.json();
+        let file_url;
+        
+        if (req.method === "GET") {
+            const url = new URL(req.url);
+            file_url = url.searchParams.get("file_url");
+        } else {
+            // Handle potential empty body or wrong content type
+            try {
+                const body = await req.json();
+                file_url = body.file_url;
+            } catch (e) {
+                return Response.json({ error: "Invalid JSON body" }, { status: 400 });
+            }
+        }
 
         if (!file_url) {
             return Response.json({ error: "file_url is required" }, { status: 400 });
