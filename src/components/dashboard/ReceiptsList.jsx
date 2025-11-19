@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Building2, Calendar, CreditCard, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Layers } from "lucide-react";
 
 const categoryColors = {
   office_supplies: "bg-blue-100 text-blue-800 border-blue-200",
@@ -34,7 +35,15 @@ const categoryLabels = {
   other: "אחר"
 };
 
-export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
+export default function ReceiptsList({ receipts, batches, isLoading, onSelectReceipt }) {
+  const batchMap = React.useMemo(() => {
+    if (!batches) return {};
+    return batches.reduce((acc, b) => {
+      acc[b.id] = b.batch_name;
+      return acc;
+    }, {});
+  }, [batches]);
+
   return (
     <Card className="border-none shadow-2xl shadow-slate-200/50">
       <CardHeader className="p-6 border-b border-slate-100">
@@ -49,7 +58,7 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
                 <TableHead className="text-right font-semibold hidden md:table-cell">תאריך</TableHead>
                 <TableHead className="text-right font-semibold">סכום</TableHead>
                 <TableHead className="text-right font-semibold hidden md:table-cell">קטגוריה</TableHead>
-                <TableHead className="text-right font-semibold">פעולות</TableHead>
+                <TableHead className="text-right font-semibold">אצווה</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -74,6 +83,7 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
                   <TableRow 
                     key={receipt.id}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
+                    onClick={() => onSelectReceipt(receipt)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -101,15 +111,10 @@ export default function ReceiptsList({ receipts, isLoading, onSelectReceipt }) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onSelectReceipt(receipt)}
-                        className="hover:bg-blue-50 hover:text-blue-700"
-                      >
-                        <Eye className="w-4 h-4 ml-1" />
-                        צפה
-                      </Button>
+                      <div className="flex items-center gap-2 text-slate-600">
+                         <Layers className="w-4 h-4" />
+                         <span className="text-sm">{batchMap[receipt.batch_id] || '-'}</span>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

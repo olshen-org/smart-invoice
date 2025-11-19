@@ -21,6 +21,12 @@ export default function Dashboard() {
     initialData: [],
   });
 
+  const { data: batches } = useQuery({
+    queryKey: ['batches'],
+    queryFn: () => base44.entities.Batch.list(),
+    initialData: [],
+  });
+
   const totalAmount = receipts.reduce((sum, r) => sum + (r.total_amount || 0), 0);
   const totalVAT = receipts.reduce((sum, r) => sum + (r.vat_amount || 0), 0);
   
@@ -78,6 +84,7 @@ export default function Dashboard() {
 
         <ReceiptsList 
           receipts={receipts}
+          batches={batches}
           isLoading={isLoading}
           onSelectReceipt={setSelectedReceipt}
         />
