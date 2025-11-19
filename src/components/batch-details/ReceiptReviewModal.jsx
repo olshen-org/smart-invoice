@@ -106,9 +106,6 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
     setEditedData(prev => ({ ...prev, total_amount: itemsTotal }));
   };
 
-  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
-  const isReceiptPDF = isPDF(editedData.receipt_image_url);
-
   return (
     <Dialog open={!!receipt} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh]" dir="rtl">
