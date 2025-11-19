@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { Buffer } from "node:buffer";
 
-Deno.serve(async (req) => {
+export default Deno.serve(async (req) => {
     if (req.method === "OPTIONS") {
         return new Response(null, {
             headers: {
@@ -33,15 +32,13 @@ Deno.serve(async (req) => {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
         
-        const arrayBuffer = await fileResponse.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString('base64');
-        const contentType = fileResponse.headers.get("content-type") || "application/pdf";
-
-        // Return base64 encoded file data with explicit intention to be rendered inline
-        return Response.json({ 
-            file_data: base64,
-            content_type: contentType,
-            disposition: "inline"
+        // Stream the body directly
+        return new Response(fileResponse.body, {
+            headers: {
+                "Content-Type": fileResponse.headers.get("content-type") || "application/pdf",
+                "Content-Disposition": "inline",
+                "Access-Control-Allow-Origin": "*"
+            }
         });
 
     } catch (error) {

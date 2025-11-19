@@ -54,22 +54,18 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url })
-        .then(({ data }) => {
-          if (data.file_data) {
-            // Convert Base64 to Blob to ensure proper inline rendering without download dialog
-            const byteCharacters = atob(data.file_data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: data.content_type || 'application/pdf' });
-            objectUrl = URL.createObjectURL(blob);
-            setPdfData(objectUrl);
-          }
+      // Request binary data directly from the function
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
+        .then((response) => {
+          // Axios returns the blob in data when responseType is blob
+          const blob = new Blob([response.data], { type: 'application/pdf' });
+          objectUrl = URL.createObjectURL(blob);
+          setPdfData(objectUrl);
         })
-        .catch(console.error)
+        .catch((err) => {
+            console.error("Error loading PDF:", err);
+            setPdfData(null);
+        })
         .finally(() => setIsLoadingPdf(false));
     } else {
        setPdfData(null);
