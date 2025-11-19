@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink, Loader2 } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink, Loader2, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -144,11 +144,43 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                     <p className="text-sm text-slate-500">טוען קובץ...</p>
                   </div>
                 ) : pdfData ? (
-                  <iframe 
-                    src={pdfData} 
-                    className="w-full h-[600px]" 
-                    title="PDF Viewer"
-                  />
+                  <div className="w-full h-[600px] relative group">
+                    {/* Desktop View */}
+                    <iframe 
+                      src={pdfData} 
+                      className="w-full h-full hidden md:block rounded-xl bg-slate-100" 
+                      title="PDF Viewer"
+                    />
+                    
+                    {/* Mobile View */}
+                    <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                        <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6 border border-slate-100">
+                            <FileText className="w-10 h-10 text-red-500" />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-2">מסמך PDF</h3>
+                        <p className="text-slate-500 mb-8 max-w-[200px]">התצוגה המקדימה זמינה במחשב שולחני. לחץ למטה לפתיחת הקובץ.</p>
+                        <Button 
+                            onClick={() => window.open(pdfData, '_blank')}
+                            className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 shadow-lg shadow-blue-200"
+                        >
+                            <ExternalLink className="w-5 h-5 ml-2" />
+                            פתח קובץ לצפייה
+                        </Button>
+                    </div>
+
+                    {/* Open in new tab button (Desktop Overlay) */}
+                    <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <Button
+                          variant="secondary"
+                          size="sm"
+                          className="shadow-lg bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
+                          onClick={() => window.open(pdfData, '_blank')}
+                      >
+                          <ExternalLink className="w-4 h-4 ml-2" />
+                          פתח בחלון חדש
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
                      <p className="text-red-500">שגיאה בטעינת הקובץ</p>
