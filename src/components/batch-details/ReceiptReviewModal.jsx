@@ -54,17 +54,15 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
-      // Fetch binary blob directly
       base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
         .then((response) => {
-           // When responseType is blob, response.data is the Blob
            const blob = response.data;
-           // Ensure it is a blob before creating URL
            if (blob instanceof Blob) {
-               objectUrl = URL.createObjectURL(blob);
-               setPdfData(objectUrl);
-           } else {
-               console.error("Response is not a blob", blob);
+               const reader = new FileReader();
+               reader.onloadend = () => {
+                   setPdfData(reader.result);
+               };
+               reader.readAsDataURL(blob);
            }
         })
         .catch((err) => {
@@ -75,12 +73,6 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
     } else {
        setPdfData(null);
     }
-
-    return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
@@ -145,41 +137,33 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                   </div>
                 ) : pdfData ? (
                   <div className="w-full h-[600px] relative group">
-                    {/* Desktop View */}
-                    <iframe 
-                      src={pdfData} 
-                      className="w-full h-full hidden md:block rounded-xl bg-slate-100" 
-                      title="PDF Viewer"
-                    />
-                    
-                    {/* Mobile View */}
-                    <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
-                        <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6 border border-slate-100">
-                            <FileText className="w-10 h-10 text-red-500" />
+                    <object
+                      data={pdfData}
+                      type="application/pdf"
+                      className="w-full h-full rounded-xl bg-slate-100"
+                    >
+                        <div className="flex flex-col items-center justify-center h-full bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                            <div className="w-20 h-20 bg-white rounded-3xl shadow-sm flex items-center justify-center mb-6 border border-slate-100">
+                                <FileText className="w-10 h-10 text-red-500" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">מסמך PDF</h3>
+                            <p className="text-slate-500 mb-8 max-w-[200px]">לא ניתן להציג את המסמך בדפדפן זה.</p>
+                            <Button 
+                                onClick={() => {
+                                    const newWindow = window.open();
+                                    if (newWindow) {
+                                        newWindow.document.write(
+                                            `<iframe width='100%' height='100%' src='${pdfData}'></iframe>`
+                                        );
+                                    }
+                                }}
+                                className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 shadow-lg shadow-blue-200"
+                            >
+                                <ExternalLink className="w-5 h-5 ml-2" />
+                                פתח בחלון חדש
+                            </Button>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-2">מסמך PDF</h3>
-                        <p className="text-slate-500 mb-8 max-w-[200px]">התצוגה המקדימה זמינה במחשב שולחני. לחץ למטה לפתיחת הקובץ.</p>
-                        <Button 
-                            onClick={() => window.open(pdfData, '_blank')}
-                            className="w-full max-w-xs bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 shadow-lg shadow-blue-200"
-                        >
-                            <ExternalLink className="w-5 h-5 ml-2" />
-                            פתח קובץ לצפייה
-                        </Button>
-                    </div>
-
-                    {/* Open in new tab button (Desktop Overlay) */}
-                    <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <Button
-                          variant="secondary"
-                          size="sm"
-                          className="shadow-lg bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
-                          onClick={() => window.open(pdfData, '_blank')}
-                      >
-                          <ExternalLink className="w-4 h-4 ml-2" />
-                          פתח בחלון חדש
-                      </Button>
-                    </div>
+                    </object>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
