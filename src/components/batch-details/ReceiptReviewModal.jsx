@@ -38,9 +38,6 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
   const [editedData, setEditedData] = useState(receipt);
-  const [pdfData, setPdfData] = useState(null);
-  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
-
   useEffect(() => {
     setEditedData(receipt);
   }, [receipt]);
@@ -48,32 +45,6 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   // Helper to check for PDF
   const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
-
-  useEffect(() => {
-    let objectUrl = null;
-
-    if (isReceiptPDF && editedData.receipt_image_url) {
-      setIsLoadingPdf(true);
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
-        .then((response) => {
-           const blob = response.data;
-           if (blob instanceof Blob) {
-               const reader = new FileReader();
-               reader.onloadend = () => {
-                   setPdfData(reader.result);
-               };
-               reader.readAsDataURL(blob);
-           }
-        })
-        .catch((err) => {
-            console.error("Error loading PDF:", err);
-            setPdfData(null);
-        })
-        .finally(() => setIsLoadingPdf(false));
-    } else {
-       setPdfData(null);
-    }
-  }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -131,12 +102,25 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
                 <div className="w-full h-[600px] relative group">
-                   {/* Google Docs Viewer */}
+                   {/* Desktop View - Iframe */}
                    <iframe
-                      src={`https://docs.google.com/gview?url=${encodeURIComponent(editedData.receipt_image_url)}&embedded=true`}
-                      className="w-full h-full rounded-xl bg-slate-100"
+                      src={editedData.receipt_image_url}
+                      className="w-full h-full hidden md:block rounded-xl bg-slate-100"
                       title="PDF Viewer"
                    />
+                   
+                   {/* Mobile View - Button */}
+                   <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                       <FileText className="w-16 h-16 text-slate-400 mb-4" />
+                       <p className="text-slate-500 mb-4">קבצי PDF יש לפתוח בחלון חדש</p>
+                       <Button
+                           onClick={() => window.open(editedData.receipt_image_url, '_blank')}
+                           className="bg-blue-600 text-white"
+                       >
+                           <ExternalLink className="w-4 h-4 ml-2" />
+                           פתח מסמך
+                       </Button>
+                   </div>
                 </div>
               ) : (
                 <img 
