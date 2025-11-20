@@ -76,6 +76,33 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
     };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
+  useEffect(() => {
+    let objectUrl = null;
+
+    if (isReceiptPDF && editedData.receipt_image_url) {
+      setIsLoadingPdf(true);
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
+        .then((response) => {
+           const blob = new Blob([response.data], { type: 'application/pdf' });
+           objectUrl = URL.createObjectURL(blob);
+           setPdfBlobUrl(objectUrl);
+        })
+        .catch((err) => {
+            console.error("Error loading PDF:", err);
+            setPdfBlobUrl(null);
+        })
+        .finally(() => setIsLoadingPdf(false));
+    } else {
+       setPdfBlobUrl(null);
+    }
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [editedData.receipt_image_url, isReceiptPDF]);
+
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
   };
