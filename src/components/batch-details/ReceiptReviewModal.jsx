@@ -54,12 +54,9 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
     if (isReceiptPDF && editedData.receipt_image_url) {
       setIsLoadingPdf(true);
-      // Request arraybuffer to avoid blob nesting issues and ensure correct binary handling
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'arraybuffer' })
+      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'blob' })
         .then((response) => {
-           // Create blob from arraybuffer with explicit PDF type
-           const blob = new Blob([response.data], { type: 'application/pdf' });
-           objectUrl = URL.createObjectURL(blob);
+           objectUrl = URL.createObjectURL(response.data);
            setPdfBlobUrl(objectUrl);
         })
         .catch((err) => {
