@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { encodeBase64 } from "jsr:@std/encoding/base64";
 
 export default Deno.serve(async (req) => {
+    // Handle CORS preflight
     if (req.method === "OPTIONS") {
         return new Response(null, {
             headers: {
@@ -38,13 +38,14 @@ export default Deno.serve(async (req) => {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
         
-        const arrayBuffer = await fileResponse.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const base64 = encodeBase64(uint8Array);
-        
-        return Response.json({ 
-            file_data: base64,
-            mime_type: fileResponse.headers.get("content-type") || "application/pdf"
+        // Stream the file directly with correct headers
+        return new Response(fileResponse.body, {
+            status: 200,
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": "inline; filename=receipt.pdf",
+                "Access-Control-Allow-Origin": "*"
+            }
         });
 
     } catch (error) {
