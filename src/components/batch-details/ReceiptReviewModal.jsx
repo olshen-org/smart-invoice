@@ -40,6 +40,8 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   const [editedData, setEditedData] = useState(receipt);
   const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   useEffect(() => {
     setEditedData(receipt);
