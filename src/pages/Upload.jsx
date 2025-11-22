@@ -200,137 +200,139 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => navigate(createPageUrl("Dashboard"))}
-            className="rounded-xl"
-          >
-            <ArrowRight className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">העלאת קבלה</h1>
-            <p className="text-slate-500 mt-1">צלם או העלה קבלה לעיבוד אוטומטי</p>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate(createPageUrl("Dashboard"))}
+              className="rounded-xl"
+            >
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900">העלאת קבלה</h1>
+              <p className="text-slate-500 mt-1">צלם או העלה קבלה לעיבוד אוטומטי</p>
+            </div>
           </div>
-        </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {!extractedData ? (
-          <div className="space-y-6">
-            <Card className="border-none shadow-lg shadow-blue-50">
-              <CardContent className="pt-6">
-                <div className="space-y-2">
-                  <Label>בחר אצווה</Label>
-                  <Select 
-                    value={selectedBatchId} 
-                    onValueChange={(value) => {
-                      if (value === "new") {
-                        setShowNewBatchDialog(true);
-                      } else {
-                        setSelectedBatchId(value);
-                      }
-                    }}
-                    disabled={isProcessing}
-                  >
-                    <SelectTrigger className="w-full md:w-1/2 text-right" dir="rtl">
-                      <SelectValue placeholder="בחר אצווה..." />
-                    </SelectTrigger>
-                    <SelectContent dir="rtl">
-                      <SelectItem value="new" className="text-blue-600 font-semibold">
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4" />
-                          <span>צור אצווה חדשה</span>
-                        </div>
-                      </SelectItem>
-                      {batches.map((batch) => (
-                        <SelectItem key={batch.id} value={batch.id}>
-                          {batch.batch_name}
+          {!extractedData ? (
+            <div className="space-y-6">
+              <Card className="border-none shadow-lg shadow-blue-50">
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <Label>בחר אצווה</Label>
+                    <Select 
+                      value={selectedBatchId} 
+                      onValueChange={(value) => {
+                        if (value === "new") {
+                          setShowNewBatchDialog(true);
+                        } else {
+                          setSelectedBatchId(value);
+                        }
+                      }}
+                      disabled={isProcessing}
+                    >
+                      <SelectTrigger className="w-full md:w-1/2 text-right" dir="rtl">
+                        <SelectValue placeholder="בחר אצווה..." />
+                      </SelectTrigger>
+                      <SelectContent dir="rtl">
+                        <SelectItem value="new" className="text-blue-600 font-semibold">
+                          <div className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" />
+                            <span>צור אצווה חדשה</span>
+                          </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {batches.length === 0 && !batchesLoading && (
-                     <p className="text-sm text-slate-500">אין אצוות קיימות. צור אצווה חדשה להתחלה.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                        {batches.map((batch) => (
+                          <SelectItem key={batch.id} value={batch.id}>
+                            {batch.batch_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {batches.length === 0 && !batchesLoading && (
+                       <p className="text-sm text-slate-500">אין אצוות קיימות. צור אצווה חדשה להתחלה.</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card className="border-none shadow-2xl shadow-blue-100/50">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold">העלאת מסמך</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UploadZone 
-                  onFileSelected={handleFileSelected}
-                  isProcessing={isProcessing}
-                  progress={uploadProgress}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        ) : (
-          <ReceiptPreview 
-            extractedData={extractedData}
-            fileUrl={fileUrl}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            isProcessing={isProcessing}
-          />
-        )}
-      </div>
+              <Card className="border-none shadow-2xl shadow-blue-100/50">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold">העלאת מסמך</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UploadZone 
+                    onFileSelected={handleFileSelected}
+                    isProcessing={isProcessing}
+                    progress={uploadProgress}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <ReceiptPreview 
+              extractedData={extractedData}
+              fileUrl={fileUrl}
+              onSave={handleSave}
+              onCancel={handleCancel}
+              isProcessing={isProcessing}
+            />
+          )}
+        </div>
       </div>
 
       <Dialog open={showNewBatchDialog} onOpenChange={setShowNewBatchDialog}>
-      <DialogContent dir="rtl">
-        <DialogHeader>
-          <DialogTitle>צור אצווה חדשה</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>שם האצווה</Label>
-            <Input
-              value={newBatchName}
-              onChange={(e) => setNewBatchName(e.target.value)}
-              placeholder="הזן שם אצווה..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newBatchName.trim()) {
-                  handleCreateNewBatch();
-                }
-              }}
-            />
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>צור אצווה חדשה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>שם האצווה</Label>
+              <Input
+                value={newBatchName}
+                onChange={(e) => setNewBatchName(e.target.value)}
+                placeholder="הזן שם אצווה..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newBatchName.trim()) {
+                    handleCreateNewBatch();
+                  }
+                }}
+              />
+            </div>
           </div>
-        </div>
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setShowNewBatchDialog(false);
-              setNewBatchName("");
-            }}
-            disabled={createBatchMutation.isPending}
-          >
-            ביטול
-          </Button>
-          <Button 
-            onClick={handleCreateNewBatch}
-            disabled={!newBatchName.trim() || createBatchMutation.isPending}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            {createBatchMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-            צור אצווה
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowNewBatchDialog(false);
+                setNewBatchName("");
+              }}
+              disabled={createBatchMutation.isPending}
+            >
+              ביטול
+            </Button>
+            <Button 
+              onClick={handleCreateNewBatch}
+              disabled={!newBatchName.trim() || createBatchMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {createBatchMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
+              צור אצווה
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
-      );
-      }
+    </>
+  );
+}
