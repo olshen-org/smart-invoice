@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -11,7 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText } from "lucide-react"; // Added import
+import { FileText, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const categoryLabels = {
   office_supplies: "ציוד משרדי",
@@ -49,17 +49,39 @@ export default function ReceiptDetailsModal({ receipt, onClose }) {
           {receipt.receipt_image_url && (
             <div className="rounded-xl overflow-hidden border border-slate-200">
               {isReceiptPDF ? (
-                <div className="w-full aspect-[3/4] flex flex-col items-center justify-center p-8 bg-gradient-to-br from-slate-50 to-slate-100">
-                  <FileText className="w-24 h-24 text-red-500 mb-4" />
-                  <p className="text-slate-600 mb-4 text-center">מסמך PDF</p>
-                  <a
-                    href={receipt.receipt_image_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    פתח PDF
-                  </a>
+                <div className="w-full h-[600px] relative group">
+                  {/* Desktop - Google Docs Viewer */}
+                  <iframe
+                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(receipt.receipt_image_url)}&embedded=true`}
+                    className="w-full h-full hidden md:block rounded-xl bg-slate-100"
+                    title="PDF Viewer"
+                  />
+                  
+                  {/* Mobile - Direct Link */}
+                  <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                    <FileText className="w-16 h-16 text-slate-400 mb-4" />
+                    <p className="text-slate-500 mb-4">לחץ לפתיחת הקובץ</p>
+                    <Button
+                      onClick={() => window.open(receipt.receipt_image_url, '_blank')}
+                      className="bg-blue-600 text-white"
+                    >
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                      הצג מסמך
+                    </Button>
+                  </div>
+
+                  {/* Desktop Overlay */}
+                  <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="shadow-lg bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
+                      onClick={() => window.open(receipt.receipt_image_url, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                      פתח בחלון חדש
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <img 
