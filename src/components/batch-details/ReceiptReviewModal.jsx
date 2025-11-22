@@ -50,34 +50,11 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
 
   useEffect(() => {
-    let objectUrl = null;
-
     if (isReceiptPDF && editedData.receipt_image_url) {
-      setIsLoadingPdf(true);
-      setPdfBlobUrl(null);
-      
-      // Fetch the PDF file directly from storage
-      fetch(editedData.receipt_image_url)
-        .then(response => response.arrayBuffer())
-        .then(arrayBuffer => {
-          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-          objectUrl = URL.createObjectURL(blob);
-          setPdfBlobUrl(objectUrl);
-        })
-        .catch(err => {
-          console.error("Error loading PDF:", err);
-          setPdfBlobUrl(null);
-        })
-        .finally(() => setIsLoadingPdf(false));
+      setPdfBlobUrl(editedData.receipt_image_url);
     } else {
        setPdfBlobUrl(null);
     }
-
-    return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
@@ -135,21 +112,15 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4 order-2 lg:order-1">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
-                isLoadingPdf ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                    <p className="text-sm text-slate-500">טוען קובץ...</p>
-                  </div>
-                ) : pdfBlobUrl ? (
                   <div className="w-full h-[600px] relative group">
-                     {/* Desktop View - Embed */}
-                     <embed
-                        src={`${pdfBlobUrl}#toolbar=0`}
-                        type="application/pdf"
+                     {/* Desktop - Google Docs Viewer */}
+                     <iframe
+                        src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfBlobUrl)}&embedded=true`}
                         className="w-full h-full hidden md:block rounded-xl bg-slate-100"
+                        title="PDF Viewer"
                      />
-                     
-                     {/* Mobile View - Button */}
+
+                     {/* Mobile - Direct Link */}
                      <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
                          <FileText className="w-16 h-16 text-slate-400 mb-4" />
                          <p className="text-slate-500 mb-4">לחץ לפתיחת הקובץ</p>
@@ -162,7 +133,7 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                          </Button>
                      </div>
 
-                     {/* Desktop Overlay Button */}
+                     {/* Desktop Overlay */}
                      <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <Button
                             variant="secondary"
@@ -175,19 +146,6 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                         </Button>
                      </div>
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-4">
-                     <p className="text-red-500">שגיאה בטעינת הקובץ</p>
-                     <Button
-                      variant="outline"
-                      onClick={() => window.open(editedData.receipt_image_url, '_blank')}
-                      className="gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      נסה לפתוח קישור ישיר
-                    </Button>
-                  </div>
-                )
               ) : (
                 <img 
                   src={editedData.receipt_image_url} 
