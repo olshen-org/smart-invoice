@@ -51,10 +51,8 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
 
   useEffect(() => {
     if (isReceiptPDF && editedData.receipt_image_url) {
-      // Create direct URL to backend function - let iframe fetch it directly
-      const functionUrl = base44.functions.getUrl('serveFile');
-      const pdfUrl = `${functionUrl}?file_url=${encodeURIComponent(editedData.receipt_image_url)}`;
-      setPdfBlobUrl(pdfUrl);
+      // Use the original URL directly - storage URLs are public
+      setPdfBlobUrl(editedData.receipt_image_url);
     } else {
        setPdfBlobUrl(null);
     }
