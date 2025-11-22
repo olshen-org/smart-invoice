@@ -50,12 +50,34 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
 
   useEffect(() => {
+    let objectUrl = null;
+
     if (isReceiptPDF && editedData.receipt_image_url) {
-      // Use the original URL directly - storage URLs are public
-      setPdfBlobUrl(editedData.receipt_image_url);
+      setIsLoadingPdf(true);
+      setPdfBlobUrl(null);
+      
+      // Fetch the PDF file directly from storage
+      fetch(editedData.receipt_image_url)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => {
+          const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+          objectUrl = URL.createObjectURL(blob);
+          setPdfBlobUrl(objectUrl);
+        })
+        .catch(err => {
+          console.error("Error loading PDF:", err);
+          setPdfBlobUrl(null);
+        })
+        .finally(() => setIsLoadingPdf(false));
     } else {
        setPdfBlobUrl(null);
     }
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
