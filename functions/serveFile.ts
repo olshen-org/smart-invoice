@@ -33,12 +33,14 @@ export default Deno.serve(async (req) => {
             return Response.json({ error: "file_url is required" }, { status: 400 });
         }
 
+        // Fetch the file from storage
         const fileResponse = await fetch(file_url);
+        
         if (!fileResponse.ok) {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
-        
-        // Stream the file directly with correct headers
+
+        // Return the file stream directly with correct headers
         return new Response(fileResponse.body, {
             status: 200,
             headers: {
