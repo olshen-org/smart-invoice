@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink, FileText } from "lucide-react";
+import { Plus, Trash2, CheckCircle, XCircle, Calculator, ExternalLink, Loader2, FileText } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,13 +38,24 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
   const [editedData, setEditedData] = useState(receipt);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
   useEffect(() => {
     setEditedData(receipt);
   }, [receipt]);
 
+  // Helper to check for PDF
   const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
+
+  useEffect(() => {
+    if (isReceiptPDF && editedData.receipt_image_url) {
+      setPdfBlobUrl(editedData.receipt_image_url);
+    } else {
+       setPdfBlobUrl(null);
+    }
+  }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -101,12 +112,39 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
             <div className="space-y-4 order-2 lg:order-1">
               <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
               {isReceiptPDF ? (
-                  <div className="w-full h-[600px]">
+                  <div className="w-full h-[600px] relative group">
+                     {/* Desktop - Google Docs Viewer */}
                      <iframe
-                        src={editedData.receipt_image_url}
-                        className="w-full h-full rounded-xl"
+                        src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfBlobUrl)}&embedded=true`}
+                        className="w-full h-full hidden md:block rounded-xl bg-slate-100"
                         title="PDF Viewer"
                      />
+
+                     {/* Mobile - Direct Link */}
+                     <div className="w-full h-full md:hidden flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 p-8 text-center">
+                         <FileText className="w-16 h-16 text-slate-400 mb-4" />
+                         <p className="text-slate-500 mb-4">לחץ לפתיחת הקובץ</p>
+                         <Button
+                             onClick={() => window.open(pdfBlobUrl, '_blank')}
+                             className="bg-blue-600 text-white"
+                         >
+                             <ExternalLink className="w-4 h-4 ml-2" />
+                             הצג מסמך
+                         </Button>
+                     </div>
+
+                     {/* Desktop Overlay */}
+                     <div className="absolute top-4 right-4 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="shadow-lg bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200"
+                            onClick={() => window.open(pdfBlobUrl, '_blank')}
+                        >
+                            <ExternalLink className="w-4 h-4 ml-2" />
+                            פתח בחלון חדש
+                        </Button>
+                     </div>
                   </div>
               ) : (
                 <img 
