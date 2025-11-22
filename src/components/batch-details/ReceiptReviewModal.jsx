@@ -142,11 +142,11 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
                   </div>
                 ) : pdfBlobUrl ? (
                   <div className="w-full h-[600px] relative group">
-                     {/* Desktop View - Iframe */}
-                     <iframe
-                        src={pdfBlobUrl}
+                     {/* Desktop View - Embed */}
+                     <embed
+                        src={`${pdfBlobUrl}#toolbar=0`}
+                        type="application/pdf"
                         className="w-full h-full hidden md:block rounded-xl bg-slate-100"
-                        title="PDF Viewer"
                      />
                      
                      {/* Mobile View - Button */}
