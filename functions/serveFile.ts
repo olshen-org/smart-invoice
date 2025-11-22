@@ -38,7 +38,7 @@ export default Deno.serve(async (req) => {
             return Response.json({ error: "Failed to fetch file" }, { status: 500 });
         }
         
-        // Simply stream the body directly
+        // Stream the file directly with correct headers
         return new Response(fileResponse.body, {
             status: 200,
             headers: {
