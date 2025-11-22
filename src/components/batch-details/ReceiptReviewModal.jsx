@@ -50,32 +50,14 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
   const isReceiptPDF = isPDF(editedData.receipt_image_url);
 
   useEffect(() => {
-    let objectUrl = null;
-
     if (isReceiptPDF && editedData.receipt_image_url) {
-      setIsLoadingPdf(true);
-      // Request arraybuffer to avoid blob nesting issues and ensure correct binary handling
-      base44.functions.invoke("serveFile", { file_url: editedData.receipt_image_url }, { responseType: 'arraybuffer' })
-        .then((response) => {
-           // Create blob from arraybuffer with explicit PDF type
-           const blob = new Blob([response.data], { type: 'application/pdf' });
-           objectUrl = URL.createObjectURL(blob);
-           setPdfBlobUrl(objectUrl);
-        })
-        .catch((err) => {
-            console.error("Error loading PDF:", err);
-            setPdfBlobUrl(null);
-        })
-        .finally(() => setIsLoadingPdf(false));
+      // Create direct URL to backend function - let iframe fetch it directly
+      const functionUrl = base44.functions.getUrl('serveFile');
+      const pdfUrl = `${functionUrl}?file_url=${encodeURIComponent(editedData.receipt_image_url)}`;
+      setPdfBlobUrl(pdfUrl);
     } else {
        setPdfBlobUrl(null);
     }
-
-    return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
   }, [editedData.receipt_image_url, isReceiptPDF]);
 
   const handleInputChange = (field, value) => {
