@@ -29,8 +29,28 @@ export default function BatchesPage() {
     },
   });
 
+  const deleteBatchMutation = useMutation({
+    mutationFn: async (batchId) => {
+      // Delete all receipts in this batch
+      const receipts = await base44.entities.Receipt.filter({ batch_id: batchId });
+      await Promise.all(receipts.map(r => base44.entities.Receipt.delete(r.id)));
+      // Delete the batch
+      await base44.entities.Batch.delete(batchId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
+      queryClient.invalidateQueries({ queryKey: ['receipts'] });
+    },
+  });
+
   const handleCreateBatch = (data) => {
     createBatchMutation.mutate(data);
+  };
+
+  const handleDeleteBatch = (batchId) => {
+    if (confirm('האם אתה בטוח שברצונך למחוק את האצווה וכל הקבלות שבה?')) {
+      deleteBatchMutation.mutate(batchId);
+    }
   };
 
   const openBatches = batches.filter(b => b.status === 'open');
@@ -60,7 +80,7 @@ export default function BatchesPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">אצוות פתוחות</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {openBatches.map((batch) => (
-                <BatchCard key={batch.id} batch={batch} />
+                <BatchCard key={batch.id} batch={batch} onDelete={handleDeleteBatch} />
               ))}
             </div>
           </div>
@@ -72,7 +92,7 @@ export default function BatchesPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">בעיבוד</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {processingBatches.map((batch) => (
-                <BatchCard key={batch.id} batch={batch} />
+                <BatchCard key={batch.id} batch={batch} onDelete={handleDeleteBatch} />
               ))}
             </div>
           </div>
@@ -84,7 +104,7 @@ export default function BatchesPage() {
             <h2 className="text-xl font-bold text-slate-900 mb-4">הושלמו</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {completedBatches.map((batch) => (
-                <BatchCard key={batch.id} batch={batch} />
+                <BatchCard key={batch.id} batch={batch} onDelete={handleDeleteBatch} />
               ))}
             </div>
           </div>

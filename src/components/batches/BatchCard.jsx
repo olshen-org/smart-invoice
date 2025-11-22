@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle, Clock, Layers } from "lucide-react";
+import { ArrowLeft, CheckCircle, Clock, Layers, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { he } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ const statusConfig = {
   completed: { label: "הושלם", color: "bg-green-100 text-green-800", icon: CheckCircle }
 };
 
-export default function BatchCard({ batch }) {
+export default function BatchCard({ batch, onDelete }) {
   const navigate = useNavigate();
   const status = statusConfig[batch.status] || statusConfig.open;
   const StatusIcon = status.icon;
@@ -58,18 +58,31 @@ export default function BatchCard({ batch }) {
 
           <div className="flex justify-between items-center text-xs text-slate-500 pt-2 border-t">
             <span>נוצר: {format(new Date(batch.created_date), "d MMM yyyy", { locale: he })}</span>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="hover:bg-blue-50 hover:text-blue-700"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(createPageUrl("BatchDetails") + `?id=${batch.id}`);
-              }}
-            >
-              פתח
-              <ArrowLeft className="w-4 h-4 mr-1" />
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="hover:bg-red-50 hover:text-red-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(batch.id);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="hover:bg-blue-50 hover:text-blue-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(createPageUrl("BatchDetails") + `?id=${batch.id}`);
+                }}
+              >
+                פתח
+                <ArrowLeft className="w-4 h-4 mr-1" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
