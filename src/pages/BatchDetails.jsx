@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Upload, CheckCircle, XCircle, Download } from "lucide-react";
@@ -24,7 +24,7 @@ export default function BatchDetailsPage() {
   const { data: batch, isLoading: batchLoading } = useQuery({
     queryKey: ['batch', batchId],
     queryFn: async () => {
-      const results = await base44.entities.Batch.filter({ id: batchId });
+      const results = await api.entities.Batch.filter({ id: batchId });
       return results[0];
     },
     enabled: !!batchId,
@@ -32,13 +32,13 @@ export default function BatchDetailsPage() {
 
   const { data: receipts, isLoading: receiptsLoading } = useQuery({
     queryKey: ['batch-receipts', batchId],
-    queryFn: () => base44.entities.Receipt.filter({ batch_id: batchId }, "-created_date"),
+    queryFn: () => api.entities.Receipt.filter({ batch_id: batchId }, "-created_date"),
     initialData: [],
     enabled: !!batchId,
   });
 
   const updateBatchMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Batch.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.Batch.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch', batchId] });
       queryClient.invalidateQueries({ queryKey: ['batches'] });
@@ -46,7 +46,7 @@ export default function BatchDetailsPage() {
   });
 
   const updateReceiptMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Receipt.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.Receipt.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
       setSelectedReceipt(null);
@@ -55,7 +55,7 @@ export default function BatchDetailsPage() {
   });
 
   const createReceiptMutation = useMutation({
-    mutationFn: (receiptData) => base44.entities.Receipt.create(receiptData),
+    mutationFn: (receiptData) => api.entities.Receipt.create(receiptData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
       setSelectedReceipt(null);
@@ -64,7 +64,7 @@ export default function BatchDetailsPage() {
   });
 
   const deleteReceiptMutation = useMutation({
-    mutationFn: (receiptId) => base44.entities.Receipt.delete(receiptId),
+    mutationFn: (receiptId) => api.entities.Receipt.delete(receiptId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
       updateBatchStats();
@@ -72,7 +72,7 @@ export default function BatchDetailsPage() {
   });
 
   const updateBatchStats = async () => {
-    const updatedReceipts = await base44.entities.Receipt.filter({ batch_id: batchId });
+    const updatedReceipts = await api.entities.Receipt.filter({ batch_id: batchId });
     const totalAmount = updatedReceipts.reduce((sum, r) => sum + (r.total_amount || 0), 0);
     const processedCount = updatedReceipts.filter(r => r.status === 'approved').length;
     
@@ -151,7 +151,7 @@ export default function BatchDetailsPage() {
     if (!confirm(`האם לאשר ${selectedIds.length} קבלות?`)) return;
     
     for (const id of selectedIds) {
-      await base44.entities.Receipt.update(id, { status: 'approved' });
+      await api.entities.Receipt.update(id, { status: 'approved' });
     }
     setSelectedIds([]);
     queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
@@ -162,7 +162,7 @@ export default function BatchDetailsPage() {
     if (!confirm(`האם לדחות ${selectedIds.length} קבלות?`)) return;
     
     for (const id of selectedIds) {
-      await base44.entities.Receipt.update(id, { status: 'rejected' });
+      await api.entities.Receipt.update(id, { status: 'rejected' });
     }
     setSelectedIds([]);
     queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
@@ -173,7 +173,7 @@ export default function BatchDetailsPage() {
     if (!confirm(`האם למחוק ${selectedIds.length} קבלות? פעולה זו לא ניתנת לביטול.`)) return;
     
     for (const id of selectedIds) {
-      await base44.entities.Receipt.delete(id);
+      await api.entities.Receipt.delete(id);
     }
     setSelectedIds([]);
     queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });

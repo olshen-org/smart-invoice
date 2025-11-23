@@ -46,14 +46,13 @@ app.get('/health', (req, res) => {
 
 // API Routes
 app.post('/api/upload', upload.single('file'), async (req, res) => {
-  console.log('Received upload request');
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  
+
   try {
     const fileName = `${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    console.log(`Uploading ${fileName} to Supabase Storage bucket 'receipts'...`);
+    console.log(`Processing file upload: ${req.file.originalname}`);
 
     const { data, error } = await supabase
       .storage
@@ -73,7 +72,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       .from('receipts')
       .getPublicUrl(fileName);
 
-    console.log(`Upload successful. Public URL: ${publicUrl}`);
     res.json({ file_url: publicUrl, file_path: data.path });
 
   } catch (error) {

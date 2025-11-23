@@ -151,7 +151,6 @@ class AuthClient {
 // App logs client (mock for local development)
 class AppLogsClient {
   async logUserInApp(pageName) {
-    console.log(`[AppLogs] User in app: ${pageName}`);
     return { success: true };
   }
 }
@@ -161,13 +160,9 @@ class IntegrationsClient {
   constructor() {
     this.Core = {
       UploadFile: this.uploadFile.bind(this),
-      InvokeLLM: this.invokeLLM.bind(this),
-      SendEmail: this.sendEmail.bind(this),
-      SendSMS: this.sendSMS.bind(this),
-      GenerateImage: this.generateImage.bind(this),
-      ExtractDataFromUploadedFile: this.extractDataFromUploadedFile.bind(this)
+      InvokeLLM: this.invokeLLM.bind(this)
     };
-    
+
     // Define backend URL - use same origin in production, localhost in dev
     this.backendUrl = import.meta.env.PROD
       ? '/api'  // In production, use relative path (same domain)
@@ -229,28 +224,6 @@ class IntegrationsClient {
     }
   }
 
-  async sendEmail({ to, subject, body }) {
-    console.log('Mock SendEmail:', { to, subject, body });
-    return { success: true, message_id: generateId() };
-  }
-
-  async sendSMS({ to, message }) {
-    console.log('Mock SendSMS:', { to, message });
-    return { success: true, message_id: generateId() };
-  }
-
-  async generateImage({ prompt }) {
-    console.log('Mock GenerateImage:', { prompt });
-    return { image_url: 'https://via.placeholder.com/512' };
-  }
-
-  async extractDataFromUploadedFile({ file_url, schema }) {
-    return this.invokeLLM({ 
-      prompt: 'Extract data from this file', 
-      file_urls: [file_url], 
-      response_json_schema: schema 
-    });
-  }
 }
 
 // Main local client

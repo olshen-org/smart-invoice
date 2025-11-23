@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -17,13 +17,13 @@ export default function Dashboard() {
 
   const { data: receipts, isLoading } = useQuery({
     queryKey: ['receipts'],
-    queryFn: () => base44.entities.Receipt.list("-created_date"),
+    queryFn: () => api.entities.Receipt.list("-created_date"),
     initialData: [],
   });
 
   const { data: batches } = useQuery({
     queryKey: ['batches'],
-    queryFn: () => base44.entities.Batch.list(),
+    queryFn: () => api.entities.Batch.list(),
     initialData: [],
   });
 

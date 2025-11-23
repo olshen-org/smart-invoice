@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from "@/api/apiClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -16,12 +16,12 @@ export default function BatchesPage() {
 
   const { data: batches, isLoading } = useQuery({
     queryKey: ['batches'],
-    queryFn: () => base44.entities.Batch.list("-created_date"),
+    queryFn: () => api.entities.Batch.list("-created_date"),
     initialData: [],
   });
 
   const createBatchMutation = useMutation({
-    mutationFn: (batchData) => base44.entities.Batch.create(batchData),
+    mutationFn: (batchData) => api.entities.Batch.create(batchData),
     onSuccess: (newBatch) => {
       queryClient.invalidateQueries({ queryKey: ['batches'] });
       setShowCreateDialog(false);
@@ -32,10 +32,10 @@ export default function BatchesPage() {
   const deleteBatchMutation = useMutation({
     mutationFn: async (batchId) => {
       // Delete all receipts in this batch
-      const receipts = await base44.entities.Receipt.filter({ batch_id: batchId });
-      await Promise.all(receipts.map(r => base44.entities.Receipt.delete(r.id)));
+      const receipts = await api.entities.Receipt.filter({ batch_id: batchId });
+      await Promise.all(receipts.map(r => api.entities.Receipt.delete(r.id)));
       // Delete the batch
-      await base44.entities.Batch.delete(batchId);
+      await api.entities.Batch.delete(batchId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batches'] });
