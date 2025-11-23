@@ -68,9 +68,15 @@ export default function UploadSection({
 - מטבע (currency) - ברירת מחדל ILS
 - אמצעי תשלום (payment_method)
 - קטגוריה (category)
-- כל הפריטים/שורות בקבלה (line_items)
+- כל הפריטים/שורות בקבלה (line_items) עם:
+  * תיאור (description)
+  * כמות (quantity) - מספר
+  * מחיר יחידה (unit_price) - מספר
+  * סה"כ (total) - מספר
 
-חשב את הסכומים הכוללים בדיוק. אם זה PDF, קרא את כל הטקסט בקובץ.`,
+חשב את הסכומים הכוללים בדיוק. אם זה PDF, קרא את כל הטקסט בקובץ.
+
+החזר רק JSON תקין ללא טקסט נוסף.`,
         file_urls: [file_url],
         response_json_schema: RECEIPT_SCHEMA
       });
