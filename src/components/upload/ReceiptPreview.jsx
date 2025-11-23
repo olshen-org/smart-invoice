@@ -104,11 +104,19 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
         </CardHeader>
         <CardContent>
           <div className="rounded-xl overflow-hidden border border-slate-200">
-            <img 
-              src={fileUrl} 
-              alt="Receipt" 
-              className="w-full h-auto"
-            />
+            {fileUrl?.toLowerCase().endsWith('.pdf') ? (
+              <iframe
+                src={fileUrl}
+                className="w-full h-[600px]"
+                title="Receipt PDF"
+              />
+            ) : (
+              <img
+                src={fileUrl}
+                alt="Receipt"
+                className="w-full h-auto"
+              />
+            )}
           </div>
         </CardContent>
       </Card>
