@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+MIGRATION.md
+SETUP_COMPLETE.md
+.env
+.env.local
+dist
+.vite
+coverage
+.DS_Store
+*.log
