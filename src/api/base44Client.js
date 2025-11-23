@@ -1,13 +1,5 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
+// Local client to replace base44 SDK
+import { localClient } from './localClient';
 
-const { appId, serverUrl, token, functionsVersion } = appParams;
-
-//Create a client with authentication required
-export const base44 = createClient({
-  appId,
-  serverUrl,
-  token,
-  functionsVersion,
-  requiresAuth: false
-});
+// For backward compatibility, export as base44
+export const base44 = localClient;
