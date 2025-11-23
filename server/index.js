@@ -148,7 +148,8 @@ app.post('/api/process-receipt', upload.single('file'), async (req, res) => {
 
 // Serve static files from the React app build directory
 // This allows the Express server to serve the frontend as well
-const distPath = path.resolve(__dirname, '../dist');
+// In Docker, dist is at ./dist, in local dev it's at ../dist
+const distPath = path.resolve(__dirname, process.env.NODE_ENV === 'production' ? './dist' : '../dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
   // Catch-all route to serve index.html for client-side routing

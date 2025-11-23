@@ -37,8 +37,9 @@ COPY --from=frontend-builder /app/dist ./dist
 # Expose port
 EXPOSE 3000
 
-# Environment variable for port
+# Environment variables
 ENV PORT=3000
+ENV NODE_ENV=production
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
