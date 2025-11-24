@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '@/api/apiClient';
+import { api } from './apiClient';
 
 const RECEIPT_SCHEMA = {
   type: "object",

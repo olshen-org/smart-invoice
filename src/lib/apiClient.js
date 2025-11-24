@@ -1,5 +1,5 @@
 // API client using Supabase for persistence
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from './supabaseClient';
 
 // Generate a simple ID
 const generateId = () => {
@@ -22,13 +22,13 @@ class EntityClient {
 
   async list(orderBy = null) {
     let query = supabase.from(this.tableName).select('*');
-    
+
     if (orderBy) {
       const descending = orderBy.startsWith('-');
       const field = descending ? orderBy.slice(1) : orderBy;
       query = query.order(field, { ascending: !descending });
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
@@ -36,19 +36,19 @@ class EntityClient {
 
   async filter(filters, orderBy = null) {
     let query = supabase.from(this.tableName).select('*');
-    
+
     // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       query = query.eq(key, value);
     });
-    
+
     // Apply ordering
     if (orderBy) {
       const descending = orderBy.startsWith('-');
       const field = descending ? orderBy.slice(1) : orderBy;
       query = query.order(field, { ascending: !descending });
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return data || [];
@@ -60,7 +60,7 @@ class EntityClient {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     return data;
   }
@@ -72,13 +72,13 @@ class EntityClient {
       created_date: now,
       updated_date: now
     };
-    
+
     const { data: created, error } = await supabase
       .from(this.tableName)
       .insert([item])
       .select()
       .single();
-    
+
     if (error) throw error;
     return created;
   }
@@ -88,14 +88,14 @@ class EntityClient {
       ...data,
       updated_date: new Date().toISOString()
     };
-    
+
     const { data: result, error } = await supabase
       .from(this.tableName)
       .update(updated)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) throw error;
     return result;
   }
@@ -105,7 +105,7 @@ class EntityClient {
       .from(this.tableName)
       .delete()
       .eq('id', id);
-    
+
     if (error) throw error;
     return { success: true };
   }
@@ -173,16 +173,16 @@ class IntegrationsClient {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch(`${this.backendUrl}/upload`, {
         method: 'POST',
         body: formData
       });
-      
+
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       return { file_url: data.file_url, file_id: data.file_id || generateId() };
     } catch (error) {
@@ -197,7 +197,7 @@ class IntegrationsClient {
         const fileUrl = file_urls[0];
         const formData = new FormData();
         formData.append('prompt', prompt);
-        
+
         if (fileUrl.startsWith('data:')) {
            const res = await fetch(fileUrl);
            const blob = await res.blob();
@@ -205,17 +205,17 @@ class IntegrationsClient {
         } else {
            formData.append('file_url', fileUrl);
         }
-        
+
         const response = await fetch(`${this.backendUrl}/process-receipt`, {
           method: 'POST',
           body: formData
         });
-        
+
         if (!response.ok) {
            const errorText = await response.text();
            throw new Error(`Processing failed: ${response.status} ${errorText}`);
         }
-        
+
         return await response.json();
       }
     } catch (error) {
@@ -226,8 +226,8 @@ class IntegrationsClient {
 
 }
 
-// Main local client
-export const localClient = {
+// Main API client
+export const api = {
   entities: {
     Batch: new EntityClient('Batch'),
     Receipt: new EntityClient('Receipt'),

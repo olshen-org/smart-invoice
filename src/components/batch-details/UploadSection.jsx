@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, Loader2, CheckCircle, XCircle, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useReceiptUpload } from "@/hooks/useReceiptUpload";
+import { useReceiptUpload } from "@/lib/useReceiptUpload";
 
 export default function UploadSection({
   batchId,

@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { api } from '@/api/apiClient';
+import { api } from '@/lib/apiClient';
 import { useQuery } from '@tanstack/react-query';
 
 

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "@/api/apiClient";
+import { api } from "@/lib/apiClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";

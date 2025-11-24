@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { api } from "@/api/apiClient";
+import { api } from "@/lib/apiClient";
 import { useQuery } from "@tanstack/react-query";
-import { useReceiptUpload } from "@/hooks/useReceiptUpload";
+import { useReceiptUpload } from "@/lib/useReceiptUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
