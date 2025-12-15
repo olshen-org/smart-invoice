@@ -14,9 +14,17 @@ const statusConfig = {
   completed: { label: "הושלם", color: "bg-green-100 text-green-800", icon: CheckCircle }
 };
 
+const lifecycleConfig = {
+  draft: { label: "נוצר", color: "bg-slate-100 text-slate-700", icon: Clock },
+  collecting: { label: "איסוף מסמכים", color: "bg-blue-100 text-blue-800", icon: Layers },
+  waiting: { label: "ממתין להמשך", color: "bg-yellow-100 text-yellow-800", icon: Clock },
+  ready_to_close: { label: "מוכן לסגירה", color: "bg-green-100 text-green-800", icon: CheckCircle },
+  completed: { label: "הושלם", color: "bg-green-100 text-green-800", icon: CheckCircle }
+};
+
 export default function BatchCard({ batch, onDelete }) {
   const navigate = useNavigate();
-  const status = statusConfig[batch.status] || statusConfig.open;
+  const status = lifecycleConfig[batch.lifecycle_stage] || statusConfig[batch.status] || lifecycleConfig.draft;
   const StatusIcon = status.icon;
 
   return (

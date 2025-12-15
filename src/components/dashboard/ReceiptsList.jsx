@@ -58,7 +58,7 @@ export default function ReceiptsList({ receipts, batches, isLoading, onSelectRec
                 <TableHead className="text-right font-semibold hidden md:table-cell">תאריך</TableHead>
                 <TableHead className="text-right font-semibold">סכום</TableHead>
                 <TableHead className="text-right font-semibold hidden md:table-cell">קטגוריה</TableHead>
-                <TableHead className="text-right font-semibold">אצווה</TableHead>
+                <TableHead className="text-right font-semibold">כרטיס</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -26,5 +26,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.cursor/
 
-.env
+# MCP config
+.mcp.json
+
+# Duplicate env entry removed (already at top)

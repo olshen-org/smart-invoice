@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 
 import UploadZone from "../components/upload/UploadZone";
 import ReceiptPreview from "../components/upload/ReceiptPreview";
+import { getDefaultPeriodMeta, updateBatchLifecycleSnapshot } from "@/lib/batchLifecycle";
 
 export default function UploadPage() {
   const navigate = useNavigate();
@@ -51,13 +52,20 @@ export default function UploadPage() {
 
   const handleCreateNewBatch = () => {
     if (newBatchName.trim()) {
-      createBatchMutation.mutate({ batch_name: newBatchName.trim() });
+      createBatchMutation.mutate({
+        ...getDefaultPeriodMeta(),
+        lifecycle_stage: 'draft',
+        status: 'open',
+        last_upload_at: null,
+        next_reminder_at: null,
+        batch_name: newBatchName.trim(),
+      });
     }
   };
 
   const handleFileSelected = async (selectedFile) => {
     if (!selectedBatchId) {
-      setError("נא לבחור אצווה לפני העלאת קבלה");
+      setError("נא לבחור כרטיס לפני העלאת קבלה");
       return;
     }
     setFile(selectedFile);
@@ -72,16 +80,16 @@ export default function UploadPage() {
   };
 
   const handleSave = async (finalData) => {
-    setIsProcessing(true);
     try {
       await api.entities.Receipt.create({
         ...finalData,
         batch_id: selectedBatchId
       });
+      await updateBatchLifecycleSnapshot(selectedBatchId);
+      queryClient.invalidateQueries({ queryKey: ['batches'] });
       navigate(createPageUrl("BatchDetails") + `?id=${selectedBatchId}`);
     } catch (err) {
       setError("שגיאה בשמירת הקבלה. אנא נסה שוב.");
-      setIsProcessing(false);
     }
   };
 
@@ -122,7 +130,7 @@ export default function UploadPage() {
               <Card className="border-none shadow-lg shadow-blue-50">
                 <CardContent className="pt-6">
                   <div className="space-y-2">
-                    <Label>בחר אצווה</Label>
+                    <Label>בחר כרטיס</Label>
                     <Select 
                       value={selectedBatchId} 
                       onValueChange={(value) => {
@@ -135,13 +143,13 @@ export default function UploadPage() {
                       disabled={isProcessing}
                     >
                       <SelectTrigger className="w-full md:w-1/2 text-right" dir="rtl">
-                        <SelectValue placeholder="בחר אצווה..." />
+                        <SelectValue placeholder="בחר כרטיס..." />
                       </SelectTrigger>
                       <SelectContent dir="rtl">
                         <SelectItem value="new" className="text-blue-600 font-semibold">
                           <div className="flex items-center gap-2">
                             <Plus className="w-4 h-4" />
-                            <span>צור אצווה חדשה</span>
+                            <span>צור כרטיס חדש</span>
                           </div>
                         </SelectItem>
                         {batches.map((batch) => (
@@ -152,7 +160,7 @@ export default function UploadPage() {
                       </SelectContent>
                     </Select>
                     {batches.length === 0 && !batchesLoading && (
-                       <p className="text-sm text-slate-500">אין אצוות קיימות. צור אצווה חדשה להתחלה.</p>
+                       <p className="text-sm text-slate-500">אין כרטיסים קיימים. צור כרטיס חדש להתחלה.</p>
                     )}
                   </div>
                 </CardContent>
@@ -186,15 +194,15 @@ export default function UploadPage() {
       <Dialog open={showNewBatchDialog} onOpenChange={setShowNewBatchDialog}>
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>צור אצווה חדשה</DialogTitle>
+            <DialogTitle>צור כרטיס חדש</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>שם האצווה</Label>
+              <Label>שם הכרטיס</Label>
               <Input
                 value={newBatchName}
                 onChange={(e) => setNewBatchName(e.target.value)}
-                placeholder="הזן שם אצווה..."
+                placeholder="הזן שם כרטיס..."
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newBatchName.trim()) {
                     handleCreateNewBatch();
@@ -220,7 +228,7 @@ export default function UploadPage() {
               className="bg-blue-600 hover:bg-blue-700"
             >
               {createBatchMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : null}
-              צור אצווה
+              צור כרטיס
             </Button>
           </DialogFooter>
         </DialogContent>

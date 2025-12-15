@@ -32,8 +32,17 @@ const PAYMENT_METHODS = [
 
 export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCancel, isProcessing }) {
   const [editedData, setEditedData] = useState(extractedData);
+  const [vatPercent, setVatPercent] = useState(17);
 
   useEffect(() => {
+    // Calculate VAT percent if we have both total and VAT amount
+    if (extractedData.total_amount && extractedData.vat_amount) {
+      const itemsTotal = extractedData.total_amount - extractedData.vat_amount;
+      if (itemsTotal > 0) {
+        const percent = Math.round((extractedData.vat_amount / itemsTotal) * 100);
+        setVatPercent(percent);
+      }
+    }
     // Calculate totals when component mounts or items change
     calculateTotals();
   }, []);
@@ -54,7 +63,9 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
 
     // Calculate item total
     if (field === 'quantity' || field === 'unit_price') {
-      newItems[index].total = (newItems[index].quantity || 0) * (newItems[index].unit_price || 0);
+      const quantity = Number(newItems[index].quantity) || 0;
+      const unitPrice = Number(newItems[index].unit_price) || 0;
+      newItems[index].total = Math.round(quantity * unitPrice * 100) / 100;
     }
 
     setEditedData(prev => ({
@@ -83,11 +94,31 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
   };
 
   const calculateTotals = () => {
-    const itemsTotal = (editedData.line_items || []).reduce((sum, item) => sum + (item.total || 0), 0);
-    setEditedData(prev => ({
-      ...prev,
-      total_amount: itemsTotal
-    }));
+    setEditedData(prev => {
+      const itemsTotal = (prev.line_items || []).reduce((sum, item) => sum + (item.total || 0), 0);
+      const vatAmount = Math.round((itemsTotal * (vatPercent / 100)) * 100) / 100;
+      const totalWithVat = Math.round((itemsTotal + vatAmount) * 100) / 100;
+      return { 
+        ...prev, 
+        vat_amount: vatAmount,
+        total_amount: totalWithVat 
+      };
+    });
+  };
+
+  const handleVatPercentChange = (value) => {
+    const percent = parseFloat(value) || 0;
+    setVatPercent(percent);
+    setEditedData(prev => {
+      const itemsTotal = (prev.line_items || []).reduce((sum, item) => sum + (item.total || 0), 0);
+      const vatAmount = Math.round((itemsTotal * (percent / 100)) * 100) / 100;
+      const totalWithVat = Math.round((itemsTotal + vatAmount) * 100) / 100;
+      return { 
+        ...prev, 
+        vat_amount: vatAmount,
+        total_amount: totalWithVat 
+      };
+    });
   };
 
   const handleSave = () => {
@@ -259,7 +290,7 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
                           step="0.01"
                           value={item.quantity || ''}
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          className="rounded-lg"
+                          className="rounded-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </TableCell>
                       <TableCell>
@@ -269,11 +300,11 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
                           step="0.01"
                           value={item.unit_price || ''}
                           onChange={(e) => handleItemChange(index, 'unit_price', e.target.value)}
-                          className="rounded-lg"
+                          className="rounded-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </TableCell>
                       <TableCell>
-                        <div className="font-bold">
+                        <div className="font-bold bg-slate-50 rounded-lg px-3 py-2 text-right">
                           ₪{(item.total || 0).toFixed(2)}
                         </div>
                       </TableCell>
@@ -299,46 +330,42 @@ export default function ReceiptPreview({ extractedData, fileUrl, onSave, onCance
                 </TableBody>
               </Table>
             </div>
-
-            <Button
-              variant="outline"
-              onClick={calculateTotals}
-              className="w-full rounded-xl"
-            >
-              <Calculator className="w-4 h-4 ml-2" />
-              חשב מחדש
-            </Button>
           </div>
 
           <Separator />
 
           {/* Totals */}
           <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold">סיכום</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={calculateTotals}
+                className="rounded-xl"
+              >
+                <Calculator className="w-4 h-4 ml-2" />
+                חשב מחדש
+              </Button>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="vat_amount">מע״ם</Label>
+                <Label htmlFor="vat_percent">מע״ם (%)</Label>
                 <Input
-                  id="vat_amount"
+                  id="vat_percent"
                   type="number"
-                  min="0"
-                  step="0.01"
-                  value={editedData.vat_amount || ''}
-                  onChange={(e) => handleInputChange('vat_amount', parseFloat(e.target.value) || 0)}
-                  placeholder="0.00"
-                  className="rounded-xl"
+                  step="1"
+                  value={vatPercent}
+                  onChange={(e) => handleVatPercentChange(e.target.value)}
+                  className="rounded-xl [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="total_amount">סה״כ *</Label>
-                <Input
-                  id="total_amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={editedData.total_amount || ''}
-                  onChange={(e) => handleInputChange('total_amount', parseFloat(e.target.value) || 0)}
-                  className="rounded-xl font-bold text-lg"
-                />
+                <Label htmlFor="vat_amount">סכום מע״ם</Label>
+                <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium h-10 flex items-center">
+                  ₪{(editedData.vat_amount || 0).toFixed(2)}
+                </div>
               </div>
             </div>
 

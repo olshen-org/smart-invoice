@@ -67,11 +67,43 @@ class EntityClient {
 
   async create(data) {
     const now = new Date().toISOString();
-    const item = {
-      ...data,
-      created_date: now,
-      updated_date: now
-    };
+
+    // For receipts table, pack extra fields into notes jsonb column
+    let item;
+    if (this.tableName === 'receipts') {
+      // Define core receipt columns that exist in DB
+      const coreFields = [
+        'batch_id', 'vendor_name', 'receipt_number', 'date',
+        'total_amount', 'vat_amount', 'currency', 'payment_method',
+        'category', 'receipt_image_url', 'line_items', 'status', 'type'
+      ];
+
+      // Separate core fields from extra fields
+      const coreData = {};
+      const notesData = data.notes || {};
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (coreFields.includes(key)) {
+          coreData[key] = value;
+        } else if (key !== 'notes' && key !== 'created_date' && key !== 'updated_date') {
+          // Pack non-core fields into notes
+          notesData[key] = value;
+        }
+      });
+
+      item = {
+        ...coreData,
+        notes: notesData,
+        created_date: now,
+        updated_date: now
+      };
+    } else {
+      item = {
+        ...data,
+        created_date: now,
+        updated_date: now
+      };
+    }
 
     const { data: created, error } = await supabase
       .from(this.tableName)
@@ -84,10 +116,37 @@ class EntityClient {
   }
 
   async update(id, data) {
-    const updated = {
-      ...data,
-      updated_date: new Date().toISOString()
-    };
+    // For receipts table, pack extra fields into notes jsonb column
+    let updated;
+    if (this.tableName === 'receipts') {
+      const coreFields = [
+        'batch_id', 'vendor_name', 'receipt_number', 'date',
+        'total_amount', 'vat_amount', 'currency', 'payment_method',
+        'category', 'receipt_image_url', 'line_items', 'status', 'type'
+      ];
+
+      const coreData = {};
+      const notesData = data.notes || {};
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (coreFields.includes(key)) {
+          coreData[key] = value;
+        } else if (key !== 'notes' && key !== 'created_date' && key !== 'updated_date') {
+          notesData[key] = value;
+        }
+      });
+
+      updated = {
+        ...coreData,
+        notes: notesData,
+        updated_date: new Date().toISOString()
+      };
+    } else {
+      updated = {
+        ...data,
+        updated_date: new Date().toISOString()
+      };
+    }
 
     const { data: result, error } = await supabase
       .from(this.tableName)
