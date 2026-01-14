@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { getDefaultPeriodMeta } from "@/lib/batchLifecycle";
 import { addDays, format } from "date-fns";
 import { he } from "date-fns/locale";
@@ -83,134 +84,135 @@ export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, 
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent dir="rtl" className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="text-2xl">תקופה חדשה</DialogTitle>
+      <DialogContent dir="rtl" className="sm:max-w-lg max-h-[90vh] p-0 gap-0">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle className="text-xl md:text-2xl">תקופה חדשה</DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
             הגדר את טווח התאריכים, הלקוח והתזכורות עבור התקופה הבאה.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5 py-2">
-          <section className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase">שלב 1 · פרטי תקופה</p>
-            <div className="space-y-2">
-              <Label htmlFor="batch_name">שם התקופה *</Label>
-              <Input
-                id="batch_name"
-                value={formData.batch_name}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    batch_name: e.target.value,
-                    period_label: e.target.value,
-                  }))
-                }
-                placeholder="לדוגמה: תקופת ינואר 2026"
-                required
-                className="rounded-xl"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <ScrollArea className="flex-1 max-h-[60vh] px-6">
+          <form id="create-batch-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
+            <section className="space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase">שלב 1 · פרטי תקופה</p>
               <div className="space-y-2">
-                <Label htmlFor="period_start">תאריך התחלה</Label>
+                <Label htmlFor="batch_name">שם התקופה *</Label>
                 <Input
-                  type="date"
-                  id="period_start"
-                  value={formData.period_start}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, period_start: e.target.value }))}
+                  id="batch_name"
+                  value={formData.batch_name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      batch_name: e.target.value,
+                      period_label: e.target.value,
+                    }))
+                  }
+                  placeholder="לדוגמה: תקופת ינואר 2026"
+                  required
+                  className="rounded-xl"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="period_start">תאריך התחלה</Label>
+                  <Input
+                    type="date"
+                    id="period_start"
+                    value={formData.period_start}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, period_start: e.target.value }))}
+                    className="rounded-xl"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="period_end">תאריך סיום</Label>
+                  <Input
+                    type="date"
+                    id="period_end"
+                    value={formData.period_end}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, period_end: e.target.value }))}
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+              {isInvalidRange && (
+                <p className="text-xs text-red-500">תאריך הסיום חייב להיות מאוחר מתאריך ההתחלה.</p>
+              )}
+            </section>
+
+            <section className="space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase">שלב 2 · לקוח והערות</p>
+              <div className="space-y-2">
+                <Label htmlFor="customer_name">שם הלקוח</Label>
+                <Input
+                  id="customer_name"
+                  value={formData.customer_name}
+                  onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                  placeholder="שם הלקוח (אופציונלי)"
                   className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="period_end">תאריך סיום</Label>
-                <Input
-                  type="date"
-                  id="period_end"
-                  value={formData.period_end}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, period_end: e.target.value }))}
+                <Label htmlFor="notes">הערות</Label>
+                <Textarea
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="הנחיות למשרד, תזכורות או סיכום עבור הלקוח."
                   className="rounded-xl"
+                  rows={2}
                 />
               </div>
-            </div>
-            {isInvalidRange && (
-              <p className="text-xs text-red-500">תאריך הסיום חייב להיות מאוחר מתאריך ההתחלה.</p>
-            )}
-          </section>
+            </section>
 
-          <section className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase">שלב 2 · לקוח והערות</p>
-            <div className="space-y-2">
-              <Label htmlFor="customer_name">שם הלקוח</Label>
-              <Input
-                id="customer_name"
-                value={formData.customer_name}
-                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-                placeholder="שם הלקוח (אופציונלי)"
-                className="rounded-xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">הערות</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="הנחיות למשרד, תזכורות או סיכום עבור הלקוח."
-                className="rounded-xl"
-                rows={3}
-              />
-            </div>
-          </section>
+            <section className="space-y-3">
+              <p className="text-xs font-semibold text-slate-500 uppercase">שלב 3 · מועדי תזכורת</p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-2">
+                  <div className="flex items-center gap-1 text-emerald-800 text-xs font-semibold mb-1">
+                    <Calendar className="w-3 h-3" />
+                    התחלה
+                  </div>
+                  <p className="text-slate-800 text-xs">{periodSummary.startLabel}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-2">
+                  <div className="flex items-center gap-1 text-emerald-800 text-xs font-semibold mb-1">
+                    <Calendar className="w-3 h-3" />
+                    סיום
+                  </div>
+                  <p className="text-slate-800 text-xs">{periodSummary.endLabel}</p>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-2">
+                  <div className="flex items-center gap-1 text-emerald-800 text-xs font-semibold mb-1">
+                    <Timer className="w-3 h-3" />
+                    יעד
+                  </div>
+                  <p className="text-slate-800 text-xs">{periodSummary.dueLabel}</p>
+                </div>
+              </div>
+            </section>
+          </form>
+        </ScrollArea>
 
-          <section className="space-y-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase">שלב 3 · מועדי תזכורת</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                <div className="flex items-center gap-2 text-emerald-800 text-sm font-semibold mb-1">
-                  <Calendar className="w-4 h-4" />
-                  התחלה
-                </div>
-                <p className="text-slate-800 text-sm">{periodSummary.startLabel}</p>
-              </div>
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                <div className="flex items-center gap-2 text-emerald-800 text-sm font-semibold mb-1">
-                  <Calendar className="w-4 h-4" />
-                  סיום
-                </div>
-                <p className="text-slate-800 text-sm">{periodSummary.endLabel}</p>
-              </div>
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
-                <div className="flex items-center gap-2 text-emerald-800 text-sm font-semibold mb-1">
-                  <Timer className="w-4 h-4" />
-                  תאריך יעד
-                </div>
-                <p className="text-slate-800 text-sm">{periodSummary.dueLabel}</p>
-              </div>
-            </div>
-            <p className="text-xs text-slate-500">
-              המערכת תזכיר לך להעלות מסמכים נוספים לאחר 48 שעות מהעלאה אחרונה.
-            </p>
-          </section>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isLoading}
-              className="rounded-xl"
-            >
-              ביטול
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || !formData.batch_name || isInvalidRange}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl"
-            >
-              צור תקופה
-            </Button>
-          </DialogFooter>
-        </form>
+        <DialogFooter className="p-6 pt-4 border-t gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            className="rounded-xl flex-1 sm:flex-none"
+          >
+            ביטול
+          </Button>
+          <Button
+            type="submit"
+            form="create-batch-form"
+            disabled={isLoading || !formData.batch_name || isInvalidRange}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl flex-1 sm:flex-none"
+          >
+            צור תקופה
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

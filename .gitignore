@@ -31,4 +31,10 @@ dist-ssr
 # MCP config
 .mcp.json
 
-# Duplicate env entry removed (already at top)
+# Google credentials
+credentials.json
+server/credentials.json
+oauth_credentials.json
+server/oauth_credentials.json
+token.json
+server/token.json

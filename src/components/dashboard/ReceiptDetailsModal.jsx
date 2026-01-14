@@ -35,8 +35,27 @@ const paymentMethodLabels = {
 };
 
 export default function ReceiptDetailsModal({ receipt, onClose }) {
-  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+  // Extract file ID from various Google Drive URL formats
+  const extractFileId = (url) => {
+    if (!url) return null;
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match) return match[1];
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    return idMatch ? idMatch[1] : null;
+  };
+  
+  const fileId = extractFileId(receipt?.receipt_image_url);
+  // Check for PDF: either ends with .pdf or has &.pdf in URL
+  const isPDF = (url) => url?.includes('.pdf');
   const isReceiptPDF = isPDF(receipt?.receipt_image_url);
+  
+  // Google Drive direct embed URLs (no proxy needed!)
+  const imageUrl = fileId 
+    ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000` 
+    : receipt?.receipt_image_url;
+  const pdfPreviewUrl = fileId 
+    ? `https://drive.google.com/file/d/${fileId}/preview`
+    : receipt?.receipt_image_url;
 
   return (
     <Dialog open={!!receipt} onOpenChange={onClose}>
@@ -50,11 +69,12 @@ export default function ReceiptDetailsModal({ receipt, onClose }) {
             <div className="rounded-xl overflow-hidden border border-slate-200">
               {isReceiptPDF ? (
                 <div className="w-full h-[600px] relative group">
-                  {/* Desktop - Google Docs Viewer */}
+                  {/* Desktop - Google Drive Preview */}
                   <iframe
-                    src={`https://docs.google.com/viewer?url=${encodeURIComponent(receipt.receipt_image_url)}&embedded=true`}
+                    src={pdfPreviewUrl}
                     className="w-full h-full hidden md:block rounded-xl bg-slate-100"
                     title="PDF Viewer"
+                    allow="autoplay"
                   />
                   
                   {/* Mobile - Direct Link */}
@@ -85,7 +105,7 @@ export default function ReceiptDetailsModal({ receipt, onClose }) {
                 </div>
               ) : (
                 <img 
-                  src={receipt.receipt_image_url} 
+                  src={imageUrl} 
                   alt="Receipt" 
                   className="w-full h-auto"
                 />

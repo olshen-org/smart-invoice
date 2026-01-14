@@ -148,6 +148,7 @@ export const enrichBatchLifecycle = (batch, receipts = null) => {
 
 export const lifecycleStageOrder = STAGES;
 
+/** @param {string} batchId @param {{ currentStatus?: string }} [options] */
 export const updateBatchLifecycleSnapshot = async (batchId, { currentStatus } = {}) => {
   if (!batchId) return null;
 

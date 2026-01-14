@@ -1,183 +1,108 @@
-// API client using Supabase for persistence
-import { supabase } from './supabaseClient';
+// API client using backend server for Google Sheets/Drive persistence
 
-// Generate a simple ID
+// Backend URL - always use /api since Vite proxy handles it in dev
+const BACKEND_URL = '/api';
+
+// Generate a simple ID (for client-side use)
 const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-// Entity operations using Supabase
+// Helper for API calls
+async function apiCall(endpoint, options = {}) {
+  const url = `${BACKEND_URL}${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || 'API call failed');
+  }
+
+  return response.json();
+}
+
+// Entity operations using backend API
 class EntityClient {
   constructor(entityName) {
     this.entityName = entityName;
-    // Handle irregular plurals
+    // Map entity names to API endpoints
     if (entityName === 'Batch') {
-      this.tableName = 'batches';
+      this.endpoint = '/batches';
     } else if (entityName === 'Receipt') {
-      this.tableName = 'receipts';
+      this.endpoint = '/receipts';
     } else {
-      this.tableName = entityName.toLowerCase() + 's';
+      this.endpoint = '/' + entityName.toLowerCase() + 's';
     }
   }
 
   async list(orderBy = null) {
-    let query = supabase.from(this.tableName).select('*');
-
+    let url = this.endpoint;
     if (orderBy) {
-      const descending = orderBy.startsWith('-');
-      const field = descending ? orderBy.slice(1) : orderBy;
-      query = query.order(field, { ascending: !descending });
+      url += `?orderBy=${encodeURIComponent(orderBy)}`;
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    return apiCall(url);
   }
 
   async filter(filters, orderBy = null) {
-    let query = supabase.from(this.tableName).select('*');
-
-    // Apply filters
-    Object.entries(filters).forEach(([key, value]) => {
-      query = query.eq(key, value);
-    });
-
-    // Apply ordering
-    if (orderBy) {
-      const descending = orderBy.startsWith('-');
-      const field = descending ? orderBy.slice(1) : orderBy;
-      query = query.order(field, { ascending: !descending });
+    // For receipts, we need batch_id
+    if (this.entityName === 'Receipt' && filters.batch_id) {
+      let url = `${this.endpoint}?batch_id=${encodeURIComponent(filters.batch_id)}`;
+      if (orderBy) {
+        url += `&orderBy=${encodeURIComponent(orderBy)}`;
+      }
+      return apiCall(url);
     }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    
+    // For other entities, just list all (filtering done client-side if needed)
+    const items = await this.list(orderBy);
+    
+    // Apply filters client-side
+    return items.filter(item => {
+      return Object.entries(filters).every(([key, value]) => item[key] === value);
+    });
   }
 
   async get(id) {
-    const { data, error } = await supabase
-      .from(this.tableName)
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    return data;
+    return apiCall(`${this.endpoint}/${id}`);
   }
 
   async create(data) {
-    const now = new Date().toISOString();
-
-    // For receipts table, pack extra fields into notes jsonb column
-    let item;
-    if (this.tableName === 'receipts') {
-      // Define core receipt columns that exist in DB
-      const coreFields = [
-        'batch_id', 'vendor_name', 'receipt_number', 'date',
-        'total_amount', 'vat_amount', 'currency', 'payment_method',
-        'category', 'receipt_image_url', 'line_items', 'status', 'type'
-      ];
-
-      // Separate core fields from extra fields
-      const coreData = {};
-      const notesData = data.notes || {};
-
-      Object.entries(data).forEach(([key, value]) => {
-        if (coreFields.includes(key)) {
-          coreData[key] = value;
-        } else if (key !== 'notes' && key !== 'created_date' && key !== 'updated_date') {
-          // Pack non-core fields into notes
-          notesData[key] = value;
-        }
-      });
-
-      item = {
-        ...coreData,
-        notes: notesData,
-        created_date: now,
-        updated_date: now
-      };
-    } else {
-      item = {
-        ...data,
-        created_date: now,
-        updated_date: now
-      };
-    }
-
-    const { data: created, error } = await supabase
-      .from(this.tableName)
-      .insert([item])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return created;
+    return apiCall(this.endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   async update(id, data) {
-    // For receipts table, pack extra fields into notes jsonb column
-    let updated;
-    if (this.tableName === 'receipts') {
-      const coreFields = [
-        'batch_id', 'vendor_name', 'receipt_number', 'date',
-        'total_amount', 'vat_amount', 'currency', 'payment_method',
-        'category', 'receipt_image_url', 'line_items', 'status', 'type'
-      ];
-
-      const coreData = {};
-      const notesData = data.notes || {};
-
-      Object.entries(data).forEach(([key, value]) => {
-        if (coreFields.includes(key)) {
-          coreData[key] = value;
-        } else if (key !== 'notes' && key !== 'created_date' && key !== 'updated_date') {
-          notesData[key] = value;
-        }
-      });
-
-      updated = {
-        ...coreData,
-        notes: notesData,
-        updated_date: new Date().toISOString()
-      };
-    } else {
-      updated = {
-        ...data,
-        updated_date: new Date().toISOString()
-      };
-    }
-
-    const { data: result, error } = await supabase
-      .from(this.tableName)
-      .update(updated)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return result;
+    // For receipts, we need to include batch_id in the body
+    return apiCall(`${this.endpoint}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async delete(id) {
-    const { error } = await supabase
-      .from(this.tableName)
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-    return { success: true };
+    // For receipts, batch_id is needed as query param
+    let url = `${this.endpoint}/${id}`;
+    return apiCall(url, {
+      method: 'DELETE',
+    });
   }
 }
 
-// Auth client
+// Auth client (mock for local development)
 class AuthClient {
   constructor() {
     this.currentUser = null;
   }
 
   async me() {
-    // Return mock user for local development
     if (!this.currentUser) {
       this.currentUser = {
         id: 'local_user_1',
@@ -207,7 +132,7 @@ class AuthClient {
   }
 }
 
-// App logs client (mock for local development)
+// App logs client (mock)
 class AppLogsClient {
   async logUserInApp(pageName) {
     return { success: true };
@@ -221,11 +146,6 @@ class IntegrationsClient {
       UploadFile: this.uploadFile.bind(this),
       InvokeLLM: this.invokeLLM.bind(this)
     };
-
-    // Define backend URL - use same origin in production, localhost in dev
-    this.backendUrl = import.meta.env.PROD
-      ? '/api'  // In production, use relative path (same domain)
-      : 'http://localhost:3000/api';  // In dev, use localhost
   }
 
   async uploadFile({ file }) {
@@ -233,7 +153,7 @@ class IntegrationsClient {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${this.backendUrl}/upload`, {
+      const response = await fetch(`${BACKEND_URL}/upload`, {
         method: 'POST',
         body: formData
       });
@@ -265,7 +185,7 @@ class IntegrationsClient {
            formData.append('file_url', fileUrl);
         }
 
-        const response = await fetch(`${this.backendUrl}/process-receipt`, {
+        const response = await fetch(`${BACKEND_URL}/process-receipt`, {
           method: 'POST',
           body: formData
         });
@@ -282,17 +202,66 @@ class IntegrationsClient {
       throw error;
     }
   }
+}
 
+// Receipt entity client with batch_id handling
+class ReceiptEntityClient extends EntityClient {
+  constructor() {
+    super('Receipt');
+  }
+
+  async filter(filters, orderBy = null) {
+    if (!filters.batch_id) {
+      throw new Error('batch_id is required for filtering receipts');
+    }
+    
+    let url = `${this.endpoint}?batch_id=${encodeURIComponent(filters.batch_id)}`;
+    if (orderBy) {
+      url += `&orderBy=${encodeURIComponent(orderBy)}`;
+    }
+    return apiCall(url);
+  }
+
+  async create(data) {
+    if (!data.batch_id) {
+      throw new Error('batch_id is required for creating receipts');
+    }
+    return apiCall(this.endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async update(id, data) {
+    if (!data.batch_id) {
+      throw new Error('batch_id is required for updating receipts');
+    }
+    return apiCall(`${this.endpoint}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(id, batchId) {
+    if (!batchId) {
+      throw new Error('batch_id is required for deleting receipts');
+    }
+    return apiCall(`${this.endpoint}/${id}?batch_id=${encodeURIComponent(batchId)}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Main API client
 export const api = {
   entities: {
     Batch: new EntityClient('Batch'),
-    Receipt: new EntityClient('Receipt'),
+    Receipt: new ReceiptEntityClient(),
     Query: {
       filter: async (entityName, filters, orderBy) => {
-        const client = new EntityClient(entityName);
+        const client = entityName === 'Receipt' 
+          ? new ReceiptEntityClient() 
+          : new EntityClient(entityName);
         return client.filter(filters, orderBy);
       }
     }

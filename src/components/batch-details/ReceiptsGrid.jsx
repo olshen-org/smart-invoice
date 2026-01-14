@@ -22,9 +22,17 @@ export default function ReceiptsGrid({
   onToggleSelect,
   onToggleSelectAll
 }) {
-  const isPDF = (url) => url?.toLowerCase().endsWith('.pdf');
+  const isPDF = (url) => url?.includes('.pdf');
   const allSelected = receipts.length > 0 && receipts.every(r => selectedIds.includes(r.id));
   const someSelected = selectedIds.length > 0 && !allSelected;
+  
+  // Get Google Drive thumbnail URL
+  const getThumbnailUrl = (url) => {
+    if (!url) return null;
+    const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w100`;
+    return url;
+  };
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
@@ -91,7 +99,7 @@ export default function ReceiptsGrid({
                                 <FileText className="w-5 h-5 text-slate-400" />
                             ) : (
                                 <img
-                                src={receipt.receipt_image_url}
+                                src={getThumbnailUrl(receipt.receipt_image_url)}
                                 alt="Receipt"
                                 className="w-full h-full object-cover"
                                 />

@@ -13,6 +13,13 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // expose on network for mobile testing
     allowedHosts: true, // allow any host (ngrok, etc.)
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   },
 });

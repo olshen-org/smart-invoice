@@ -22,7 +22,6 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { uploadAndExtract, isProcessing, progress, error, setError } = useReceiptUpload();
-  const [file, setFile] = useState(null);
   const [extractedData, setExtractedData] = useState(null);
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [showNewBatchDialog, setShowNewBatchDialog] = useState(false);
@@ -68,7 +67,6 @@ export default function UploadPage() {
       setError("נא לבחור כרטיס לפני העלאת קבלה");
       return;
     }
-    setFile(selectedFile);
     setExtractedData(null);
 
     try {
@@ -94,7 +92,6 @@ export default function UploadPage() {
   };
 
   const handleCancel = () => {
-    setFile(null);
     setExtractedData(null);
     setError(null);
   };
@@ -182,7 +179,6 @@ export default function UploadPage() {
           ) : (
             <ReceiptPreview
               extractedData={extractedData}
-              fileUrl={extractedData?.receipt_image_url}
               onSave={handleSave}
               onCancel={handleCancel}
               isProcessing={isProcessing}
