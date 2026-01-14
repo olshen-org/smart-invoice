@@ -2,10 +2,10 @@ const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
 
-// Paths for OAuth credentials and tokens
-const OAUTH_CREDENTIALS_PATH = process.env.GOOGLE_OAUTH_CREDENTIALS_PATH || 
+// Paths for OAuth credentials and tokens (file-based, for local dev)
+const OAUTH_CREDENTIALS_PATH = process.env.GOOGLE_OAUTH_CREDENTIALS_PATH ||
   path.join(__dirname, '../oauth_credentials.json');
-const TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH || 
+const TOKEN_PATH = process.env.GOOGLE_TOKEN_PATH ||
   path.join(__dirname, '../token.json');
 
 // Scopes required for Sheets and Drive
@@ -20,58 +20,82 @@ let driveClient = null;
 
 /**
  * Load OAuth credentials and create auth client
+ * Supports both file-based (local) and env var (production) approaches
  */
 function loadCredentials() {
-  if (!fs.existsSync(OAUTH_CREDENTIALS_PATH)) {
+  let client_id, client_secret, redirect_uri;
+
+  // Option 1: Environment variables (production)
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    client_id = process.env.GOOGLE_CLIENT_ID;
+    client_secret = process.env.GOOGLE_CLIENT_SECRET;
+    redirect_uri = process.env.GOOGLE_REDIRECT_URI || 'urn:ietf:wg:oauth:2.0:oob';
+    console.log('Using Google OAuth credentials from environment variables');
+  }
+  // Option 2: File-based (local development)
+  else if (fs.existsSync(OAUTH_CREDENTIALS_PATH)) {
+    const content = fs.readFileSync(OAUTH_CREDENTIALS_PATH, 'utf-8');
+    const credentials = JSON.parse(content);
+    const creds = credentials.installed || credentials.web;
+    client_id = creds.client_id;
+    client_secret = creds.client_secret;
+    redirect_uri = creds.redirect_uris?.[0] || 'urn:ietf:wg:oauth:2.0:oob';
+    console.log('Using Google OAuth credentials from file');
+  }
+  else {
     throw new Error(
-      `OAuth credentials not found at ${OAUTH_CREDENTIALS_PATH}. ` +
-      'Please create OAuth credentials in Google Cloud Console and download them.'
+      `Google OAuth credentials not found. Either set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET ` +
+      `environment variables, or create ${OAUTH_CREDENTIALS_PATH}`
     );
   }
 
-  const content = fs.readFileSync(OAUTH_CREDENTIALS_PATH, 'utf-8');
-  const credentials = JSON.parse(content);
-  
-  // Handle both "installed" (desktop) and "web" credential types
-  const { client_secret, client_id, redirect_uris } = 
-    credentials.installed || credentials.web;
-  
-  oauth2Client = new google.auth.OAuth2(
-    client_id,
-    client_secret,
-    redirect_uris[0]
-  );
-
+  oauth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uri);
   return oauth2Client;
 }
 
 /**
  * Load saved tokens and set them on the OAuth client
+ * Supports both file-based (local) and env var (production) approaches
  */
 function loadTokens() {
   if (!oauth2Client) {
     loadCredentials();
   }
 
-  if (!fs.existsSync(TOKEN_PATH)) {
+  let tokens;
+
+  // Option 1: Environment variable (production)
+  if (process.env.GOOGLE_REFRESH_TOKEN) {
+    tokens = {
+      refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+      // Access token will be fetched automatically using refresh token
+    };
+    console.log('Using Google refresh token from environment variable');
+  }
+  // Option 2: File-based (local development)
+  else if (fs.existsSync(TOKEN_PATH)) {
+    tokens = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+    console.log('Using Google tokens from file');
+  }
+  else {
     throw new Error(
-      `Token not found at ${TOKEN_PATH}. ` +
-      'Please run "node server/setup-auth.js" to authenticate.'
+      `Google tokens not found. Either set GOOGLE_REFRESH_TOKEN environment variable, ` +
+      `or run "node server/setup-auth.js" to authenticate locally.`
     );
   }
 
-  const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-  oauth2Client.setCredentials(token);
+  oauth2Client.setCredentials(tokens);
 
-  // Set up token refresh handler
-  oauth2Client.on('tokens', (tokens) => {
-    if (tokens.refresh_token) {
-      // Save the new refresh token
-      const existingToken = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-      existingToken.refresh_token = tokens.refresh_token;
-      fs.writeFileSync(TOKEN_PATH, JSON.stringify(existingToken, null, 2));
-    }
-  });
+  // Set up token refresh handler (only for file-based tokens)
+  if (!process.env.GOOGLE_REFRESH_TOKEN) {
+    oauth2Client.on('tokens', (newTokens) => {
+      if (newTokens.refresh_token) {
+        const existingToken = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+        existingToken.refresh_token = newTokens.refresh_token;
+        fs.writeFileSync(TOKEN_PATH, JSON.stringify(existingToken, null, 2));
+      }
+    });
+  }
 
   return oauth2Client;
 }
@@ -80,7 +104,7 @@ function loadTokens() {
  * Get the authenticated OAuth2 client
  */
 function getAuth() {
-  if (!oauth2Client || !oauth2Client.credentials.access_token) {
+  if (!oauth2Client || !oauth2Client.credentials.refresh_token) {
     loadTokens();
   }
   return oauth2Client;
@@ -116,7 +140,7 @@ function getAuthUrl() {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
-    prompt: 'consent', // Force consent to get refresh token
+    prompt: 'consent',
   });
 }
 
@@ -129,11 +153,17 @@ async function getTokenFromCode(code) {
   }
   const { tokens } = await oauth2Client.getToken(code);
   oauth2Client.setCredentials(tokens);
-  
-  // Save tokens
+
+  // Save tokens to file (for local dev)
   fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokens, null, 2));
   console.log('Token saved to', TOKEN_PATH);
-  
+
+  // Also print the refresh token for production setup
+  if (tokens.refresh_token) {
+    console.log('\n📋 For production, set this environment variable:');
+    console.log(`GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}\n`);
+  }
+
   return tokens;
 }
 
