@@ -30,7 +30,6 @@ export default function BatchDetailsPage() {
   const { uploadAndExtract, isProcessing: isUploading } = useReceiptUpload();
 
   const [selectedReceipt, setSelectedReceipt] = useState(null);
-  const [expandedReceiptId, setExpandedReceiptId] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [showNextBatchDialog, setShowNextBatchDialog] = useState(false);
 
@@ -62,7 +61,6 @@ export default function BatchDetailsPage() {
     mutationFn: (params) => api.entities.Receipt.update(params.id, params.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['batch-receipts', batchId] });
-      setExpandedReceiptId(null);
       toast.success("הקבלה עודכנה בהצלחה");
     },
     onError: (error) => {
@@ -267,11 +265,7 @@ export default function BatchDetailsPage() {
                 <ReceiptCard
                   key={receipt.id}
                   receipt={receipt}
-                  isExpanded={expandedReceiptId === receipt.id}
-                  onToggleExpand={() => setExpandedReceiptId(
-                    expandedReceiptId === receipt.id ? null : receipt.id
-                  )}
-                  onSave={handleSaveReceipt}
+                  onToggleExpand={() => setSelectedReceipt(receipt)}
                   onDelete={handleDeleteReceipt}
                 />
               ))
@@ -327,13 +321,18 @@ export default function BatchDetailsPage() {
         </div>
       </div>
 
-      {/* Receipt Review Modal - For new uploads */}
+      {/* Receipt Review Modal - For new uploads and viewing existing receipts */}
       {selectedReceipt && (
         <ReceiptReviewModal
           receipt={selectedReceipt}
           onApprove={handleApproveReceipt}
           onReject={handleRejectReceipt}
           onClose={() => setSelectedReceipt(null)}
+          onSave={(data) => {
+            handleSaveReceipt(data);
+            setSelectedReceipt(null);
+          }}
+          onDelete={handleDeleteReceipt}
           isProcessing={updateReceiptMutation.isPending || createReceiptMutation.isPending}
         />
       )}

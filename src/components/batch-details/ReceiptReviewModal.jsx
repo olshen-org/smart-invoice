@@ -44,7 +44,9 @@ function extractFileId(url) {
   return match?.[1] || null;
 }
 
-export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, isProcessing }) {
+export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClose, onSave, onDelete, isProcessing }) {
+  // Determine if this is an existing receipt (has id) or a new upload
+  const isExistingReceipt = !!receipt?.id;
   const [editedData, setEditedData] = useState(receipt);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -188,7 +190,7 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
       <DialogContent className="w-full h-full md:max-w-6xl md:h-[95vh] max-w-none m-0 rounded-none md:rounded-xl p-4 md:p-6 overflow-hidden flex flex-col" dir="rtl">
         <DialogHeader>
           <DialogTitle className="text-xl md:text-2xl font-bold flex items-center gap-3">
-            <span>אישור עסקה</span>
+            <span>{isExistingReceipt ? 'פרטי עסקה' : 'אישור עסקה'}</span>
             <Tabs value={editedData.type} onValueChange={handleTypeChange} className="w-[200px]">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="expense" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-900">
@@ -408,33 +410,65 @@ export default function ReceiptReviewModal({ receipt, onApprove, onReject, onClo
         </div>
 
         <div className="flex justify-between gap-3 pt-4 border-t bg-white border-t-slate-200 z-10">
-          {/* Reprocess button - left side (right in RTL) */}
-          <Button
-            variant="ghost"
-            onClick={handleReprocess}
-            disabled={isProcessing || isReprocessing}
-            className="rounded-xl text-slate-600 hover:text-slate-900"
-          >
-            {isReprocessing ? (
-              <Loader2 className="w-4 h-4 ml-1 animate-spin" />
-            ) : (
-              <RotateCcw className="w-4 h-4 ml-1" />
+          {/* Left side actions */}
+          <div className="flex gap-2">
+            {/* Reprocess button */}
+            <Button
+              variant="ghost"
+              onClick={handleReprocess}
+              disabled={isProcessing || isReprocessing}
+              className="rounded-xl text-slate-600 hover:text-slate-900"
+            >
+              {isReprocessing ? (
+                <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+              ) : (
+                <RotateCcw className="w-4 h-4 ml-1" />
+              )}
+              עיבוד מחדש
+            </Button>
+
+            {/* Delete button - only for existing receipts */}
+            {isExistingReceipt && onDelete && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (confirm("האם למחוק את הקבלה?")) {
+                    onDelete(receipt.id);
+                    onClose();
+                  }
+                }}
+                disabled={isProcessing || isReprocessing}
+                className="rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 ml-1" />
+                מחק
+              </Button>
             )}
-            עיבוד מחדש
-          </Button>
+          </div>
 
           {/* Action buttons - right side (left in RTL) */}
           <div className="flex gap-3">
-            <Button variant="outline" onClick={onReject} disabled={isProcessing || isReprocessing} className="rounded-xl flex-1 md:flex-none">
-              <XCircle className="w-4 h-4 ml-1" /> דחה
+            <Button variant="outline" onClick={onClose} disabled={isProcessing || isReprocessing} className="rounded-xl flex-1 md:flex-none">
+              <XCircle className="w-4 h-4 ml-1" /> {isExistingReceipt ? 'ביטול' : 'דחה'}
             </Button>
-            <Button
-              onClick={() => onApprove(editedData)}
-              disabled={isProcessing || isReprocessing}
-              className={`rounded-xl flex-1 md:flex-none text-white ${isIncome ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-            >
-              <CheckCircle className="w-4 h-4 ml-1" /> אשר וצור {isIncome ? 'הכנסה' : 'הוצאה'}
-            </Button>
+
+            {isExistingReceipt ? (
+              <Button
+                onClick={() => onSave?.(editedData)}
+                disabled={isProcessing || isReprocessing}
+                className={`rounded-xl flex-1 md:flex-none text-white ${isIncome ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                <CheckCircle className="w-4 h-4 ml-1" /> שמור שינויים
+              </Button>
+            ) : (
+              <Button
+                onClick={() => onApprove(editedData)}
+                disabled={isProcessing || isReprocessing}
+                className={`rounded-xl flex-1 md:flex-none text-white ${isIncome ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+              >
+                <CheckCircle className="w-4 h-4 ml-1" /> אשר וצור {isIncome ? 'הכנסה' : 'הוצאה'}
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
