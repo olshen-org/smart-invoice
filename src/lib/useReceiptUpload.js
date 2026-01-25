@@ -30,43 +30,8 @@ const RECEIPT_SCHEMA = {
   required: ["vendor_name", "date", "total_amount"]
 };
 
-const EXTRACTION_PROMPT = `אתה מערכת חשבונאית מדויקת. נתח את המסמך הזה (קבלה, חשבונית, או חשבונית מס) וחלץ את הנתונים המדויקים.
-
-⚠️ כללי דיוק קריטיים - זו מערכת הנהלת חשבונות!
-1. חלץ את המספרים בדיוק כפי שמופיעים במסמך - אל תעגל ואל תחשב מחדש
-2. אם מספר מופיע כשלילי (זיכוי, החזר) - שמור אותו כשלילי
-3. מע"מ בישראל הוא 18% - אבל תמיד חלץ את הסכום המדויק מהמסמך
-
-📋 מבנה חשבונית ישראלית תקנית:
-- פריטים (line_items) = סכומים לפני מע"מ (נטו)
-- סכום מע"מ (vat_amount) = מופיע בנפרד
-- סכום כולל (total_amount) = סכום פריטים + מע"מ
-
-🔍 שדות לחילוץ:
-
-vendor_name: שם העסק/הספק - בעברית כפי שמופיע
-receipt_number: מספר חשבונית/קבלה
-date: תאריך בפורמט YYYY-MM-DD בלבד
-currency: מטבע (ברירת מחדל: ILS)
-payment_method: אמצעי תשלום (מזומן/אשראי/העברה/וכו')
-category: קטגוריה (office_supplies/utilities/travel/meals/equipment/services/rent/insurance/marketing/other)
-
-line_items: מערך של כל הפריטים:
-  - description: תיאור מפורט בעברית (כולל מק"ט, גודל, צבע אם רלוונטי)
-  - quantity: כמות (מספר, יכול להיות שלילי לזיכוי)
-  - unit_price: מחיר ליחידה לפני מע"מ (מספר, יכול להיות שלילי)
-  - total: סה"כ לשורה = כמות × מחיר (לפני מע"מ)
-
-vat_amount: סכום המע"מ המדויק כפי שמופיע במסמך
-total_amount: הסכום הסופי לתשלום כולל מע"מ
-
-notes: פרטים נוספים (מספר עוסק, כתובת, תנאי תשלום, וכו')
-
-✅ בדיקה עצמית לפני החזרה:
-- סכום כל הפריטים + מע"מ צריך להיות שווה ל-total_amount (עם סטייה מקסימלית של 0.10₪)
-- אם יש אי-התאמה - חלץ את המספרים כפי שהם מופיעים במסמך
-
-החזר JSON תקין בלבד, ללא טקסט נוסף.`;
+// Prompt is now defined on the server (server/index.js DEFAULT_EXTRACTION_PROMPT)
+// Edit it there to change extraction behavior for all clients
 
 export function useReceiptUpload() {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -85,9 +50,8 @@ export function useReceiptUpload() {
 
       setProgress(60);
 
-      // Extract data using AI
+      // Extract data using AI (uses server-side default prompt)
       const result = await api.integrations.Core.InvokeLLM({
-        prompt: EXTRACTION_PROMPT,
         file_urls: [file_url],
         response_json_schema: RECEIPT_SCHEMA
       });
@@ -117,9 +81,8 @@ export function useReceiptUpload() {
     try {
       setProgress(60);
 
-      // Extract data using AI with existing URL
+      // Extract data using AI with existing URL (uses server-side default prompt)
       const result = await api.integrations.Core.InvokeLLM({
-        prompt: EXTRACTION_PROMPT,
         file_urls: [imageUrl],
         response_json_schema: RECEIPT_SCHEMA
       });

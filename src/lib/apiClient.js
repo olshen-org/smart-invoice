@@ -175,7 +175,9 @@ class IntegrationsClient {
       if (file_urls.length > 0) {
         const fileUrl = file_urls[0];
         const formData = new FormData();
-        formData.append('prompt', prompt);
+        if (prompt) {
+          formData.append('prompt', prompt);
+        }
 
         if (fileUrl.startsWith('data:')) {
            const res = await fetch(fileUrl);

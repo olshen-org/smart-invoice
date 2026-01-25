@@ -208,13 +208,13 @@ function uploadAndProcessAttachment(attachment, message) {
   }
 
   const uploadResult = JSON.parse(uploadResponse.getContentText());
-  const fileUrl = uploadResult.url || uploadResult.webViewLink;
+  const fileUrl = uploadResult.file_url;
 
   if (!fileUrl) {
     return { success: false, error: 'No file URL returned' };
   }
 
-  // Step 2: Process with Gemini OCR
+  // Step 2: Process with Gemini OCR (uses server-side default prompt)
   const processResponse = UrlFetchApp.fetch(CONFIG.API_URL + '/api/process-receipt', {
     method: 'post',
     contentType: 'application/json',
