@@ -36,8 +36,18 @@ export default function BatchCard({ batch, onDelete }) {
         <div className="flex justify-between items-start">
           <div className="flex-1">
             <CardTitle className="text-xl mb-2">{batch.batch_name}</CardTitle>
+            {batch.type === 'client' && (
+              <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                👤 {batch.client_name || 'לקוח'}
+              </span>
+            )}
+            {(!batch.type || batch.type === 'personal') && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                🏠 אישי
+              </span>
+            )}
             {batch.customer_name && (
-              <p className="text-sm text-slate-500">{batch.customer_name}</p>
+              <p className="text-sm text-slate-500 mt-1">{batch.customer_name}</p>
             )}
           </div>
           <Badge className={`${status.color} border-0 flex items-center gap-1`}>

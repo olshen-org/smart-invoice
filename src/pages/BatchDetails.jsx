@@ -16,6 +16,7 @@ import UploadSection from "../components/batch-details/UploadSection";
 import ReceiptCard from "../components/batch-details/ReceiptCard";
 import ReceiptReviewModal from "../components/batch-details/ReceiptReviewModal";
 import BatchReport from "../components/batch-details/BatchReport";
+import ClientSessionView from "../components/batch-details/ClientSessionView";
 import { getDefaultPeriodMeta } from "@/lib/batchLifecycle";
 import CreateBatchDialog from "@/components/batches/CreateBatchDialog";
 
@@ -203,6 +204,11 @@ export default function BatchDetailsPage() {
         <p className="text-slate-500">טוען...</p>
       </div>
     );
+  }
+
+  // Client sessions get their own dedicated view
+  if (batch?.type === 'client') {
+    return <ClientSessionView batch={batch} />;
   }
 
   return (

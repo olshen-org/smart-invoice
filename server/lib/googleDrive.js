@@ -11,18 +11,19 @@ const FILES_FOLDER_ID = process.env.GOOGLE_FILES_FOLDER_ID;
 async function listPeriods() {
   const response = await drive.files.list({
     q: `'${ROOT_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`,
-    fields: 'files(id, name, createdTime, modifiedTime)',
+    fields: 'files(id, name, createdTime, modifiedTime, appProperties)',
     orderBy: 'createdTime desc',
   });
 
   return response.data.files.map(file => ({
     id: file.id,
     batch_name: file.name,
+    type: file.appProperties?.period_type || 'personal',
+    client_name: file.appProperties?.client_name || '',
     created_date: file.createdTime,
     updated_date: file.modifiedTime,
-    // These will be populated from sheet data
-    status: 'open',
-    lifecycle_stage: 'collecting',
+    status: file.appProperties?.status || 'open',
+    lifecycle_stage: file.appProperties?.lifecycle_stage || 'collecting',
   }));
 }
 
@@ -34,16 +35,18 @@ async function listPeriods() {
 async function getPeriod(fileId) {
   const response = await drive.files.get({
     fileId,
-    fields: 'id, name, createdTime, modifiedTime',
+    fields: 'id, name, createdTime, modifiedTime, appProperties',
   });
 
   return {
     id: response.data.id,
     batch_name: response.data.name,
+    type: response.data.appProperties?.period_type || 'personal',
+    client_name: response.data.appProperties?.client_name || '',
     created_date: response.data.createdTime,
     updated_date: response.data.modifiedTime,
-    status: 'open',
-    lifecycle_stage: 'collecting',
+    status: response.data.appProperties?.status || 'open',
+    lifecycle_stage: response.data.appProperties?.lifecycle_stage || 'collecting',
   };
 }
 
@@ -52,7 +55,10 @@ async function getPeriod(fileId) {
  * @param {string} name - Name of the period (e.g., "January 2026")
  * @returns {Promise<Object>} Created period object with id
  */
-async function createPeriodSheet(name) {
+async function createPeriodSheet(name, options = {}) {
+  const type = options.type || 'personal';
+  const clientName = options.client_name || '';
+
   // Create a new spreadsheet in the root folder
   const response = await drive.files.create({
     requestBody: {
@@ -64,6 +70,19 @@ async function createPeriodSheet(name) {
   });
 
   const fileId = response.data.id;
+
+  // Set app properties for period type and initial status
+  await drive.files.update({
+    fileId,
+    requestBody: {
+      appProperties: {
+        period_type: type,
+        client_name: clientName,
+        status: 'open',
+        lifecycle_stage: 'draft',
+      },
+    },
+  });
 
   // Initialize the sheet with headers
   await sheets.spreadsheets.values.update({
@@ -95,6 +114,8 @@ async function createPeriodSheet(name) {
   return {
     id: fileId,
     batch_name: response.data.name,
+    type,
+    client_name: clientName,
     created_date: response.data.createdTime,
     updated_date: response.data.modifiedTime,
     status: 'open',
@@ -108,10 +129,15 @@ async function createPeriodSheet(name) {
  * @param {string} newName - New name for the period
  * @returns {Promise<Object>} Updated period object
  */
-async function renamePeriod(fileId, newName) {
+async function renamePeriod(fileId, newName, options = {}) {
+  const requestBody = { name: newName };
+  if (options.client_name !== undefined) {
+    requestBody.appProperties = { client_name: options.client_name };
+  }
+
   const response = await drive.files.update({
     fileId,
-    requestBody: { name: newName },
+    requestBody,
     fields: 'id, name, createdTime, modifiedTime',
   });
 
@@ -121,6 +147,23 @@ async function renamePeriod(fileId, newName) {
     created_date: response.data.createdTime,
     updated_date: response.data.modifiedTime,
   };
+}
+
+/**
+ * Update period metadata (status, lifecycle_stage, etc.) stored in appProperties
+ * @param {string} fileId
+ * @param {Object} props - fields to update (status, lifecycle_stage, finalized_date, etc.)
+ */
+async function updatePeriodProps(fileId, props) {
+  const appProperties = {};
+  if (props.status !== undefined)          appProperties.status = props.status;
+  if (props.lifecycle_stage !== undefined) appProperties.lifecycle_stage = props.lifecycle_stage;
+  if (props.finalized_date !== undefined)  appProperties.finalized_date = props.finalized_date;
+  if (props.client_name !== undefined)     appProperties.client_name = props.client_name;
+
+  if (Object.keys(appProperties).length > 0) {
+    await drive.files.update({ fileId, requestBody: { appProperties } });
+  }
 }
 
 /**
@@ -193,6 +236,7 @@ module.exports = {
   getPeriod,
   createPeriodSheet,
   renamePeriod,
+  updatePeriodProps,
   deletePeriod,
   uploadFile,
   deleteFile,

@@ -19,9 +19,14 @@ export default function Dashboard() {
     queryFn: () => api.entities.Batch.list("-created_date"),
   });
 
-  // Find active (open) batch
-  const activeBatch = batches.find(
-    (b) => b.status !== "completed" && b.lifecycle_stage !== "completed"
+  // Find active personal period (only one should be open at a time)
+  const personalBatch = batches.find(
+    (b) => (!b.type || b.type === 'personal') && b.status !== "completed" && b.lifecycle_stage !== "completed"
+  );
+
+  // Open client sessions (multiple can be open simultaneously)
+  const clientSessions = batches.filter(
+    (b) => b.type === 'client' && b.status !== "completed" && b.lifecycle_stage !== "completed"
   );
 
   // Completed batches for history
@@ -29,12 +34,12 @@ export default function Dashboard() {
     .filter((b) => b.status === "completed" || b.lifecycle_stage === "completed")
     .slice(0, 5);
 
-  // Auto-redirect to active batch
+  // Auto-redirect only to personal period
   useEffect(() => {
-    if (!batchesLoading && activeBatch) {
-      navigate(createPageUrl("BatchDetails") + `?id=${activeBatch.id}`, { replace: true });
+    if (!batchesLoading && personalBatch) {
+      navigate(createPageUrl("BatchDetails") + `?id=${personalBatch.id}`, { replace: true });
     }
-  }, [batchesLoading, activeBatch, navigate]);
+  }, [batchesLoading, personalBatch, navigate]);
 
   const createBatchMutation = useMutation({
     mutationFn: (payload) => api.entities.Batch.create(payload),
@@ -56,8 +61,8 @@ export default function Dashboard() {
     });
   };
 
-  // Show loading while checking for active batch
-  if (batchesLoading || activeBatch) {
+  // Show loading while checking for personal batch
+  if (batchesLoading || personalBatch) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -65,16 +70,16 @@ export default function Dashboard() {
     );
   }
 
-  // No active batch - show create prompt
+  // No active personal period - show dashboard with client sessions and create prompt
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6" dir="rtl">
       <div className="max-w-md mx-auto space-y-6 pt-12">
         {/* Create New Period Card */}
         <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Plus className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-xl font-bold text-slate-900 mb-2">אין תקופה פתוחה</h1>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">אין תקופה אישית פתוחה</h1>
           <p className="text-sm text-slate-500 mb-6">
             צור תקופה חדשה כדי להתחיל לאסוף קבלות
           </p>
@@ -86,6 +91,31 @@ export default function Dashboard() {
             צור תקופה חדשה
           </Button>
         </div>
+
+        {/* Open Client Sessions */}
+        {clientSessions.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-medium text-slate-600 px-1">סשנים פתוחים ללקוחות</h2>
+            <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+              {clientSessions.map((batch) => (
+                <button
+                  key={batch.id}
+                  onClick={() => navigate(createPageUrl("BatchDetails") + `?id=${batch.id}`)}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors w-full text-right"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">👤</span>
+                    <div>
+                      <span className="text-sm font-medium text-slate-900">{batch.client_name || batch.batch_name}</span>
+                      <p className="text-xs text-slate-500">{batch.total_receipts || 0} קבלות</p>
+                    </div>
+                  </div>
+                  <ChevronLeft className="w-5 h-5 text-slate-400" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Previous Periods */}
         {completedBatches.length > 0 && (

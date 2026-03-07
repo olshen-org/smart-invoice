@@ -1,13 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // Import Google API modules
 const googleDrive = require('./lib/googleDrive');
+const { extractReceipt, classifyItemVAT } = require('./lib/geminiExtract');
 const googleSheets = require('./lib/googleSheets');
 
 const app = express();
@@ -81,11 +81,11 @@ app.get('/api/periods/:id', async (req, res) => {
 // Create new period
 app.post('/api/periods', async (req, res) => {
   try {
-    const { batch_name } = req.body;
+    const { batch_name, type = 'personal', client_name = '' } = req.body;
     if (!batch_name) {
       return res.status(400).json({ error: 'batch_name is required' });
     }
-    const period = await googleDrive.createPeriodSheet(batch_name);
+    const period = await googleDrive.createPeriodSheet(batch_name, { type, client_name });
     res.json(period);
   } catch (error) {
     console.error('Error creating period:', error);
@@ -96,10 +96,11 @@ app.post('/api/periods', async (req, res) => {
 // Update period (rename)
 app.put('/api/periods/:id', async (req, res) => {
   try {
-    const { batch_name } = req.body;
+    const { batch_name, status, lifecycle_stage, finalized_date, client_name } = req.body;
     if (batch_name) {
       await googleDrive.renamePeriod(req.params.id, batch_name);
     }
+    await googleDrive.updatePeriodProps(req.params.id, { status, lifecycle_stage, finalized_date, client_name });
     const period = await googleDrive.getPeriod(req.params.id);
     const stats = await googleSheets.getPeriodStats(req.params.id);
     res.json({ ...period, ...stats });
@@ -259,136 +260,51 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 // RECEIPT PROCESSING (Gemini AI)
 // ============================================
 
-// Default extraction prompt - edit here to change for all clients (UI, Gmail script, etc.)
-const DEFAULT_EXTRACTION_PROMPT = `אתה מערכת חשבונאית מדויקת. נתח את המסמך הזה (קבלה, חשבונית, או חשבונית מס) וחלץ את הנתונים המדויקים.
-
-⚠️ כללי דיוק קריטיים - זו מערכת הנהלת חשבונות!
-1. חלץ את המספרים בדיוק כפי שמופיעים במסמך - אל תעגל ואל תחשב מחדש
-2. אם מספר מופיע כשלילי (זיכוי, החזר) - שמור אותו כשלילי
-3. מע"מ בישראל הוא 18% - אבל תמיד חלץ את הסכום המדויק מהמסמך
-
-📋 מבנה חשבונית ישראלית תקנית:
-- פריטים (line_items) = סכומים לפני מע"מ (נטו)
-- סכום מע"מ (vat_amount) = מופיע בנפרד
-- סכום כולל (total_amount) = סכום פריטים + מע"מ
-
-🔍 שדות לחילוץ:
-
-vendor_name: שם העסק/הספק - בעברית כפי שמופיע
-receipt_number: מספר חשבונית/קבלה
-date: תאריך בפורמט YYYY-MM-DD בלבד
-currency: מטבע (ברירת מחדל: ILS)
-payment_method: אמצעי תשלום (מזומן/אשראי/העברה/וכו')
-category: קטגוריה (office_supplies/utilities/travel/meals/equipment/services/rent/insurance/marketing/other)
-
-line_items: מערך של כל הפריטים:
-  - description: תיאור מפורט בעברית (כולל מק"ט, גודל, צבע אם רלוונטי)
-  - quantity: כמות (מספר, יכול להיות שלילי לזיכוי)
-  - unit_price: מחיר ליחידה לפני מע"מ (מספר, יכול להיות שלילי)
-  - total: סה"כ לשורה = כמות × מחיר (לפני מע"מ)
-
-vat_amount: סכום המע"מ המדויק כפי שמופיע במסמך
-total_amount: הסכום הסופי לתשלום כולל מע"מ
-
-notes: פרטים נוספים (מספר עוסק, כתובת, תנאי תשלום, וכו')
-
-✅ בדיקה עצמית לפני החזרה:
-- סכום כל הפריטים + מע"מ צריך להיות שווה ל-total_amount (עם סטייה מקסימלית של 0.10₪)
-- אם יש אי-התאמה - חלץ את המספרים כפי שהם מופיעים במסמך
-
-החזר JSON תקין בלבד, ללא טקסט נוסף.`;
 
 app.post('/api/process-receipt', upload.single('file'), async (req, res) => {
   console.log('Received receipt processing request');
-  let imagePart;
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+    let imageBuffer, mimeType;
 
     if (req.file) {
-      imagePart = {
-        inlineData: {
-          data: req.file.buffer.toString('base64'),
-          mimeType: req.file.mimetype
-        },
-      };
+      imageBuffer = req.file.buffer;
+      mimeType = req.file.mimetype;
     } else if (req.body.file_url) {
       const fetchRes = await fetch(req.body.file_url);
       if (!fetchRes.ok) throw new Error('Failed to fetch image from URL');
-      const buffer = Buffer.from(await fetchRes.arrayBuffer());
-      
+      imageBuffer = Buffer.from(await fetchRes.arrayBuffer());
+
       // Detect MIME type from magic bytes (Google Drive returns application/octet-stream)
-      let mimeType = fetchRes.headers.get('content-type');
+      mimeType = fetchRes.headers.get('content-type');
       if (!mimeType || mimeType === 'application/octet-stream') {
-        // Check magic bytes
-        if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
-          mimeType = 'image/jpeg';
-        } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-          mimeType = 'image/png';
-        } else if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
-          mimeType = 'image/gif';
-        } else if (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) {
-          mimeType = 'image/webp';
-        } else if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) {
-          mimeType = 'application/pdf';
-        } else {
-          mimeType = 'image/jpeg'; // Default fallback
-        }
-        console.log('Detected MIME type from magic bytes:', mimeType);
+        if (imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8) mimeType = 'image/jpeg';
+        else if (imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50) mimeType = 'image/png';
+        else if (imageBuffer[0] === 0x25 && imageBuffer[1] === 0x50) mimeType = 'application/pdf';
+        else mimeType = 'image/jpeg';
+        console.log('Detected MIME type:', mimeType);
       }
-      
-      imagePart = {
-        inlineData: {
-          data: buffer.toString('base64'),
-          mimeType
-        },
-      };
     } else {
       return res.status(400).json({ error: 'No file or file_url provided' });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-3-flash-preview",
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0,    // Deterministic output for accounting accuracy
-        topK: 1,
-        topP: 0,
-      }
-    });
-    
-    const prompt = req.body.prompt || DEFAULT_EXTRACTION_PROMPT;
-    
-    console.log('Calling Gemini API...');
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    let text = response.text();
-    console.log('Gemini raw response:', text.substring(0, 200));
-    
-    // Clean up markdown code blocks if present
-    text = text.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
-    
-    try {
-      let jsonResponse = JSON.parse(text);
-      console.log('Successfully parsed JSON response');
-
-      // If Gemini returns an array, unwrap the first element
-      if (Array.isArray(jsonResponse) && jsonResponse.length > 0) {
-        jsonResponse = jsonResponse[0];
-      }
-
-      res.json(jsonResponse);
-    } catch (parseError) {
-      console.error("Failed to parse Gemini response as JSON:", text);
-      res.status(500).json({ 
-        error: "Failed to parse JSON from Gemini", 
-        raw_response: text.substring(0, 500)
-      });
-    }
+    const extracted = await extractReceipt(imageBuffer, mimeType);
+    res.json(extracted);
   } catch (error) {
     console.error('Error processing receipt:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// VAT classification for a single item name
+app.post('/api/classify-vat', async (req, res) => {
+  try {
+    const { item_name } = req.body;
+    if (!item_name) return res.status(400).json({ error: 'item_name is required' });
+    const result = await classifyItemVAT(item_name);
+    res.json(result);
+  } catch (err) {
+    console.error('VAT classification error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -431,10 +347,11 @@ app.post('/api/batches', async (req, res) => {
 
 app.put('/api/batches/:id', async (req, res) => {
   try {
-    const { batch_name } = req.body;
+    const { batch_name, status, lifecycle_stage, finalized_date, client_name } = req.body;
     if (batch_name) {
       await googleDrive.renamePeriod(req.params.id, batch_name);
     }
+    await googleDrive.updatePeriodProps(req.params.id, { status, lifecycle_stage, finalized_date, client_name });
     const period = await googleDrive.getPeriod(req.params.id);
     const stats = await googleSheets.getPeriodStats(req.params.id);
     res.json({ ...period, ...stats });

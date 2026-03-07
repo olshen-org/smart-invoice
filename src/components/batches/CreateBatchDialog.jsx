@@ -16,6 +16,7 @@ import { getDefaultPeriodMeta } from "@/lib/batchLifecycle";
 import { addDays, format } from "date-fns";
 import { he } from "date-fns/locale";
 import { Calendar, Timer } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const toDateInput = (isoString) => {
   if (!isoString) return "";
@@ -32,6 +33,8 @@ const toISODate = (value) => {
 export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, initialMeta = null }) {
   const defaultMeta = useMemo(() => initialMeta || getDefaultPeriodMeta(), [initialMeta]);
 
+  const [periodType, setPeriodType] = useState('personal');
+  const [clientName, setClientName] = useState('');
   const [formData, setFormData] = useState({
     batch_name: defaultMeta.period_label,
     customer_name: '',
@@ -44,6 +47,8 @@ export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, 
   useEffect(() => {
     if (open) {
       const meta = initialMeta || getDefaultPeriodMeta();
+      setPeriodType('personal');
+      setClientName('');
       setFormData({
         batch_name: meta.period_label,
         customer_name: '',
@@ -62,6 +67,8 @@ export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, 
       period_start: toISODate(formData.period_start),
       period_end: toISODate(formData.period_end),
       period_label: formData.period_label || formData.batch_name,
+      type: periodType,
+      client_name: clientName,
     });
   };
 
@@ -94,6 +101,50 @@ export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, 
 
         <ScrollArea className="flex-1 max-h-[60vh] px-6">
           <form id="create-batch-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setPeriodType('personal')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all",
+                  periodType === 'personal'
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-200 text-gray-500 hover:border-gray-300"
+                )}
+              >
+                <span className="text-2xl">🏠</span>
+                <span>הוצאות אישיות</span>
+                <span className="text-xs font-normal text-gray-400">חודשי רגיל</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriodType('client')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all",
+                  periodType === 'client'
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-gray-200 text-gray-500 hover:border-gray-300"
+                )}
+              >
+                <span className="text-2xl">👤</span>
+                <span>סשן לקוח</span>
+                <span className="text-xs font-normal text-gray-400">קבלות לקוח</span>
+              </button>
+            </div>
+
+            {periodType === 'client' && (
+              <div className="mb-4">
+                <Label>שם לקוח *</Label>
+                <Input
+                  value={clientName}
+                  onChange={e => setClientName(e.target.value)}
+                  placeholder="לדוגמה: כהן משפחה"
+                  required
+                  className="rounded-xl mt-1"
+                />
+              </div>
+            )}
+
             <section className="space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase">שלב 1 · פרטי תקופה</p>
               <div className="space-y-2">
@@ -207,7 +258,7 @@ export default function CreateBatchDialog({ open, onClose, onSubmit, isLoading, 
           <Button
             type="submit"
             form="create-batch-form"
-            disabled={isLoading || !formData.batch_name || isInvalidRange}
+            disabled={isLoading || !formData.batch_name || isInvalidRange || (periodType === 'client' && !clientName)}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl flex-1 sm:flex-none"
           >
             צור תקופה
