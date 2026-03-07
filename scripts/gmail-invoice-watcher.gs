@@ -7,6 +7,10 @@
  * 3. This script runs every 5 minutes and processes labeled emails
  * 4. After processing: removes "smart-invoice", adds "processed" (green) or "failed" (red)
  *
+ * Supports two email patterns:
+ *   A) Direct attachment (PDF or image) — Ituran, City Wash, Wolt, etc.
+ *   B) Tokenized URL in email body (no attachment) — Bezeq, Hot, etc.
+ *
  * Setup:
  * 1. Create labels in Gmail:
  *    - "smart-invoice" (trigger label - you add this manually)
@@ -20,6 +24,7 @@
  */
 
 // ============ CONFIGURATION ============
+
 const CONFIG = {
   // Your production API URL
   API_URL: 'https://your-app-url.com',
@@ -116,11 +121,208 @@ function findInvoiceAttachment(attachments) {
   return validAttachments[0].attachment;
 }
 
+// ============ TOKENIZED URL HANDLING ============
+
+/**
+ * Extract URLs from HTML email body that look like invoice links.
+ * Handles HTML entity decoding (&amp; → &) for URL correctness.
+ */
+function extractInvoiceUrls(htmlBody) {
+  // Decode HTML entities so URLs are valid
+  const decoded = htmlBody
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"');
+
+  const urls = [];
+  const seen = {};
+
+  // Extract all href values
+  const hrefRegex = /href=["']([^"']+)["']/gi;
+  let match;
+  while ((match = hrefRegex.exec(decoded)) !== null) {
+    const url = match[1].trim();
+
+    // Only HTTP(S) URLs, no duplicates
+    if (!url.startsWith('http') || seen[url]) continue;
+    seen[url] = true;
+
+    // Skip unsubscribe / tracking / image links
+    const skipKeywords = ['unsubscribe', 'optout', 'pixel', 'track', 'open.php',
+                          'click.php', 'beacon', 'analytics', 'utm_'];
+    if (skipKeywords.some(kw => url.toLowerCase().includes(kw))) continue;
+
+    // Keep URLs that look like invoice/document links
+    const invoiceKeywords = [
+      'invoice', 'חשבונית', 'receipt', 'bill', 'חשבון',
+      'myinvoice', 'download', 'pdf', 'document', 'view-bill',
+      'statement', 'e-bill', 'ebill', 'billing'
+    ];
+    const urlLower = url.toLowerCase();
+    if (invoiceKeywords.some(kw => urlLower.includes(kw.toLowerCase()))) {
+      urls.push(url);
+      Logger.log('Candidate invoice URL: ' + url);
+    }
+  }
+
+  return urls;
+}
+
+/**
+ * Attempt to download a PDF from a given URL.
+ * If URL returns HTML, scans it for PDF download links.
+ */
+function fetchPdfFromUrl(landingUrl) {
+  try {
+    Logger.log('Fetching invoice page: ' + landingUrl);
+    const response = UrlFetchApp.fetch(landingUrl, {
+      followRedirects: true,
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GoogleAppsScript/1.0)' }
+    });
+
+    const code = response.getResponseCode();
+    const contentType = (response.getHeaders()['Content-Type'] || '').toLowerCase();
+    Logger.log('Response: HTTP ' + code + ', Content-Type: ' + contentType);
+
+    if (code !== 200) {
+      Logger.log('Non-200 response, skipping');
+      return null;
+    }
+
+    // ── Direct PDF returned ──────────────────────────────────────
+    if (contentType.includes('pdf') || contentType.includes('octet-stream')) {
+      const blob = response.getBlob();
+      const bytes = blob.getBytes();
+      // Verify PDF magic bytes: %PDF
+      if (bytes[0] === 37 && bytes[1] === 80 && bytes[2] === 68 && bytes[3] === 70) {
+        const suggestedName = landingUrl.split('/').pop().split('?')[0] || 'invoice.pdf';
+        const fileName = suggestedName.toLowerCase().endsWith('.pdf')
+          ? suggestedName : 'invoice.pdf';
+        Logger.log('Direct PDF (' + Math.round(bytes.length / 1024) + 'KB): ' + fileName);
+        return blob.setName(fileName);
+      }
+    }
+
+    // ── HTML page — scan for PDF links ──────────────────────────
+    const html = response.getContentText();
+    const baseUrlMatch = landingUrl.match(/^(https?:\/\/[^\/]+)/);
+    const baseUrl = baseUrlMatch ? baseUrlMatch[0] : '';
+
+    // Patterns to find PDF download links inside the page
+    const linkPatterns = [
+      // Explicit .pdf extension in href
+      /href=["']([^"']*\.pdf[^"']*)["']/gi,
+      // Download / export / print endpoints
+      /href=["']([^"']*(?:download|Export|Print|GetPdf|generatePDF)[^"']*)["']/gi,
+      // Form actions pointing at pdf-generating endpoints
+      /action=["']([^"']*(?:pdf|invoice|receipt|bill)[^"']*)["']/gi,
+    ];
+
+    for (const pattern of linkPatterns) {
+      let m;
+      while ((m = pattern.exec(html)) !== null) {
+        let href = m[1].replace(/&amp;/g, '&').trim();
+
+        // Skip anchors / javascript / mailto
+        if (href.startsWith('#') || href.startsWith('javascript:') ||
+            href.startsWith('mailto:')) continue;
+
+        // Build absolute URL
+        if (href.startsWith('//')) {
+          href = 'https:' + href;
+        } else if (href.startsWith('/')) {
+          href = baseUrl + href;
+        } else if (!href.startsWith('http')) {
+          continue;
+        }
+
+        Logger.log('Trying PDF link from page: ' + href);
+        const pdfBlob = fetchDirectPdf(href);
+        if (pdfBlob) return pdfBlob;
+      }
+    }
+
+    Logger.log('No PDF found in page: ' + landingUrl);
+    return null;
+
+  } catch (e) {
+    Logger.log('fetchPdfFromUrl error: ' + e.message);
+    return null;
+  }
+}
+
+/**
+ * Fetch a URL and return its content as a PDF blob only if it is actually a PDF.
+ */
+function fetchDirectPdf(url) {
+  try {
+    const response = UrlFetchApp.fetch(url, {
+      followRedirects: true,
+      muteHttpExceptions: true
+    });
+
+    if (response.getResponseCode() !== 200) return null;
+
+    const blob = response.getBlob();
+    const bytes = blob.getBytes();
+
+    // Check PDF magic bytes (%PDF)
+    if (bytes.length > 4 &&
+        bytes[0] === 37 && bytes[1] === 80 && bytes[2] === 68 && bytes[3] === 70) {
+      const raw = url.split('/').pop().split('?')[0] || 'invoice.pdf';
+      const fileName = raw.toLowerCase().endsWith('.pdf') ? raw : 'invoice.pdf';
+      Logger.log('Confirmed PDF (' + Math.round(bytes.length / 1024) + 'KB): ' + fileName);
+      return blob.setName(fileName);
+    }
+
+    return null;
+  } catch (e) {
+    Logger.log('fetchDirectPdf error: ' + e.message);
+    return null;
+  }
+}
+
+/**
+ * Try to retrieve an invoice PDF from URLs found in the email body.
+ * This handles "click to view" emails like Bezeq, Hot, etc.
+ * Returns a Blob if successful, or null.
+ */
+function fetchInvoiceFromEmailBody(message) {
+  const htmlBody = message.getBody();
+  if (!htmlBody) {
+    Logger.log('Empty email body');
+    return null;
+  }
+
+  const invoiceUrls = extractInvoiceUrls(htmlBody);
+
+  if (invoiceUrls.length === 0) {
+    Logger.log('No invoice URLs found in email body');
+    return null;
+  }
+
+  Logger.log('Trying ' + invoiceUrls.length + ' candidate URLs...');
+
+  for (const url of invoiceUrls) {
+    const blob = fetchPdfFromUrl(url);
+    if (blob) {
+      Logger.log('✓ PDF obtained from URL: ' + url);
+      return blob;
+    }
+  }
+
+  Logger.log('Could not obtain a PDF from any URL in email body');
+  return null;
+}
+
 // ============ MAIN PROCESSING ============
 
 /**
- * Main function - processes invoice emails with "smart-invoice" label
- * Set this to run every 5 minutes via Triggers
+ * Main function - processes invoice emails with "smart-invoice" label.
+ * Set this to run every 5 minutes via Triggers.
  */
 function processInvoiceEmails() {
   // Get all required labels (will throw if not found)
@@ -143,29 +345,51 @@ function processInvoiceEmails() {
 
     for (const message of messages) {
       const attachments = message.getAttachments();
-      
-      // Smart filter: find the actual invoice, skip logos/signatures
-      const invoiceAttachment = findInvoiceAttachment(attachments);
-      
-      if (invoiceAttachment) {
-        Logger.log('Processing: ' + invoiceAttachment.getName());
 
+      // ── Path A: direct attachment ───────────────────────────────
+      const invoiceAttachment = findInvoiceAttachment(attachments);
+
+      if (invoiceAttachment) {
+        Logger.log('Processing attachment: ' + invoiceAttachment.getName());
         try {
-          const result = uploadAndProcessAttachment(invoiceAttachment, message);
+          const result = uploadAndProcessBlob(invoiceAttachment.copyBlob(), message);
           if (result.success) {
-            Logger.log('Success: ' + JSON.stringify(result));
+            Logger.log('Success (attachment): ' + JSON.stringify(result));
             threadSuccess = true;
           } else {
-            Logger.log('Failed: ' + result.error);
+            Logger.log('Failed (attachment): ' + result.error);
             threadError = result.error;
           }
         } catch (error) {
-          Logger.log('Error: ' + error.message);
+          Logger.log('Error (attachment): ' + error.message);
           threadError = error.message;
         }
+
       } else {
-        Logger.log('No valid invoice attachment found in message');
-        threadError = 'No valid invoice attachment found';
+        // ── Path B: no attachment — try tokenized URL in body ──────
+        Logger.log('No attachment found — scanning email body for invoice URL...');
+        const urlBlob = fetchInvoiceFromEmailBody(message);
+
+        if (urlBlob) {
+          Logger.log('Processing PDF from URL: ' + urlBlob.getName());
+          try {
+            const result = uploadAndProcessBlob(urlBlob, message);
+            if (result.success) {
+              Logger.log('Success (URL): ' + JSON.stringify(result));
+              threadSuccess = true;
+            } else {
+              Logger.log('Failed (URL): ' + result.error);
+              threadError = result.error;
+            }
+          } catch (error) {
+            Logger.log('Error (URL): ' + error.message);
+            threadError = error.message;
+          }
+
+        } else {
+          Logger.log('No valid invoice attachment or URL found in message');
+          threadError = 'No valid invoice attachment or URL found';
+        }
       }
     }
 
@@ -175,10 +399,10 @@ function processInvoiceEmails() {
     // Add result label
     if (threadSuccess) {
       thread.addLabel(processedLabel);
-      Logger.log('Marked as processed');
+      Logger.log('Marked as processed ✓');
     } else {
       thread.addLabel(failedLabel);
-      Logger.log('Marked as failed: ' + (threadError || 'No valid attachments found'));
+      Logger.log('Marked as failed: ' + (threadError || 'Unknown error'));
     }
   }
 
@@ -188,18 +412,16 @@ function processInvoiceEmails() {
 // ============ API INTEGRATION ============
 
 /**
- * Upload attachment to your API and trigger processing
+ * Upload a blob (PDF or image) to the API and create a receipt.
+ * Accepts either a GmailAttachment blob or any Blob obtained via UrlFetchApp.
  */
-function uploadAndProcessAttachment(attachment, message) {
-  const blob = attachment.copyBlob();
-  const fileName = attachment.getName();
+function uploadAndProcessBlob(blob, message) {
+  const fileName = blob.getName() || 'invoice.pdf';
 
-  // Step 1: Upload file to Google Drive via your API (multipart form data)
+  // Step 1: Upload file via multipart form data
   const uploadResponse = UrlFetchApp.fetch(CONFIG.API_URL + '/api/upload', {
     method: 'post',
-    payload: {
-      file: blob
-    },
+    payload: { file: blob },
     muteHttpExceptions: true
   });
 
@@ -211,16 +433,14 @@ function uploadAndProcessAttachment(attachment, message) {
   const fileUrl = uploadResult.file_url;
 
   if (!fileUrl) {
-    return { success: false, error: 'No file URL returned' };
+    return { success: false, error: 'No file URL returned from upload' };
   }
 
-  // Step 2: Process with Gemini OCR (uses server-side default prompt)
+  // Step 2: Process with Gemini OCR
   const processResponse = UrlFetchApp.fetch(CONFIG.API_URL + '/api/process-receipt', {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({
-      file_url: fileUrl
-    }),
+    payload: JSON.stringify({ file_url: fileUrl }),
     muteHttpExceptions: true
   });
 
@@ -230,7 +450,7 @@ function uploadAndProcessAttachment(attachment, message) {
 
   const receiptData = JSON.parse(processResponse.getContentText());
 
-  // Step 3: Get batch ID (use configured or find open period)
+  // Step 3: Resolve batch/period ID
   let batchId = CONFIG.DEFAULT_BATCH_ID;
   if (!batchId) {
     const periodsResponse = UrlFetchApp.fetch(CONFIG.API_URL + '/api/periods', {
@@ -281,6 +501,14 @@ function uploadAndProcessAttachment(attachment, message) {
   };
 }
 
+/**
+ * @deprecated Use uploadAndProcessBlob() directly.
+ * Kept for backward compatibility if called from other scripts.
+ */
+function uploadAndProcessAttachment(attachment, message) {
+  return uploadAndProcessBlob(attachment.copyBlob(), message);
+}
+
 // ============ MANUAL TESTING ============
 
 /**
@@ -316,7 +544,8 @@ function testApiConnection() {
 }
 
 /**
- * Dry run - see what would be processed without actually processing
+ * Dry run - see what would be processed without actually processing.
+ * Also shows whether email body URLs are found for no-attachment emails.
  */
 function dryRun() {
   const searchQuery = `label:${CONFIG.LABEL_INBOX}`;
@@ -331,16 +560,39 @@ function dryRun() {
     Logger.log('---');
     Logger.log('Subject: ' + message.getSubject());
     Logger.log('From: ' + message.getFrom());
-    Logger.log('All attachments: ' + attachments.map(a => 
-      a.getName() + ' (' + Math.round(a.getSize()/1024) + 'KB)'
-    ).join(', '));
+    Logger.log('All attachments: ' + (attachments.length > 0
+      ? attachments.map(a => a.getName() + ' (' + Math.round(a.getSize()/1024) + 'KB)').join(', ')
+      : '(none)'));
 
     // Show what would actually be selected
     const selected = findInvoiceAttachment(attachments);
     if (selected) {
-      Logger.log('→ Would process: ' + selected.getName());
+      Logger.log('→ Path A: Would process attachment: ' + selected.getName());
     } else {
-      Logger.log('→ No valid invoice found (would fail)');
+      Logger.log('→ No attachment. Scanning email body for URLs...');
+      const urls = extractInvoiceUrls(message.getBody());
+      if (urls.length > 0) {
+        Logger.log('→ Path B: Found ' + urls.length + ' candidate URL(s): ' + urls.join(', '));
+        Logger.log('→ (Use testFetchUrl to verify PDF download)');
+      } else {
+        Logger.log('→ No invoice found — would fail');
+      }
     }
+  }
+}
+
+/**
+ * Test fetching a PDF from a specific URL (useful for debugging Bezeq etc.)
+ * Usage: set TEST_URL below and run this function
+ */
+function testFetchUrl() {
+  const TEST_URL = 'https://myinvoice.bezeq.co.il/?MailID=YOUR_TOKEN_HERE';
+
+  Logger.log('Testing URL fetch: ' + TEST_URL);
+  const blob = fetchPdfFromUrl(TEST_URL);
+  if (blob) {
+    Logger.log('✓ Success! Got PDF: ' + blob.getName() + ' (' + Math.round(blob.getBytes().length / 1024) + 'KB)');
+  } else {
+    Logger.log('✗ Could not retrieve PDF from this URL');
   }
 }
